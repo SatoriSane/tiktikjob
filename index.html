@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TicTic Job">
+    <meta name="theme-color" content="#1a1a2e">
+    <title>TicTic Job</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <h1>TicTic Job</h1>
+            <button id="settingsBtn" class="icon-btn" aria-label="Configuración">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Today's Date -->
+            <div class="date-display">
+                <span id="currentDate"></span>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button id="entryBtn" class="action-btn entry">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                        <polyline points="10 17 15 12 10 7"></polyline>
+                        <line x1="15" y1="12" x2="3" y2="12"></line>
+                    </svg>
+                    <span>Entrada</span>
+                </button>
+                <button id="exitBtn" class="action-btn exit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    <span>Salida</span>
+                </button>
+            </div>
+
+            <!-- Special Day Button -->
+            <button id="specialDayBtn" class="special-day-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>Marcar Vacación / Feriado</span>
+            </button>
+
+            <!-- Today's Records -->
+            <section class="today-records">
+                <h2>Hoy</h2>
+                <div id="todayRecords" class="records-list">
+                    <!-- Records will be inserted here -->
+                </div>
+                <div id="todayTotal" class="today-total"></div>
+            </section>
+
+            <!-- Weekly Summary -->
+            <section class="weekly-summary">
+                <h2>Resumen Semanal</h2>
+                <div id="weeklySummary" class="summary-card">
+                    <!-- Weekly summary will be inserted here -->
+                </div>
+            </section>
+
+            <!-- Weekly Details Table -->
+            <section class="weekly-details">
+                <h2>Detalle de la Semana</h2>
+                <div id="weeklyTable" class="weekly-table-container">
+                    <!-- Table will be inserted here -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Time Picker Modal -->
+        <div id="timeModal" class="modal">
+            <div class="modal-content">
+                <h3 id="modalTitle">Registrar Hora</h3>
+                <div class="time-picker">
+                    <input type="time" id="timePicker" class="time-input">
+                </div>
+                <div class="modal-actions">
+                    <button id="cancelTime" class="btn-secondary">Cancelar</button>
+                    <button id="confirmTime" class="btn-primary">Confirmar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Special Day Modal -->
+        <div id="specialDayModal" class="modal">
+            <div class="modal-content">
+                <h3>Día Especial</h3>
+                <p class="modal-subtitle">Selecciona el tipo de día</p>
+                <div class="special-options">
+                    <button id="vacationBtn" class="special-option">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <span>Vacación</span>
+                    </button>
+                    <button id="holidayBtn" class="special-option">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                        <span>Feriado</span>
+                    </button>
+                </div>
+                <button id="cancelSpecial" class="btn-secondary btn-full">Cancelar</button>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-content">
+                <h3>Configuración</h3>
+                <div class="settings-form">
+                    <div class="setting-group">
+                        <label>Horas de trabajo por día</label>
+                        <div class="time-setting">
+                            <input type="number" id="dailyHours" min="0" max="24" value="7">
+                            <span>hr</span>
+                            <input type="number" id="dailyMinutes" min="0" max="59" value="30">
+                            <span>min</span>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <label>Horas máximas por semana</label>
+                        <div class="time-setting">
+                            <input type="number" id="weeklyHours" min="0" max="168" value="41">
+                            <span>hr</span>
+                        </div>
+                    </div>
+                    <div class="setting-group export-section">
+                        <label>Exportar datos</label>
+                        <button id="exportExcel" class="btn-export">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Exportar a Excel
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button id="cancelSettings" class="btn-secondary">Cancelar</button>
+                    <button id="saveSettings" class="btn-primary">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
