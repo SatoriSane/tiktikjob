@@ -43,6 +43,87 @@ html, body {
     min-height: 100dvh;
 }
 
+/* ─── Edit Mode Banner ─── */
+.edit-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: rgba(255, 170, 50, 0.12);
+    border-bottom: 1px solid rgba(255, 170, 50, 0.25);
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.edit-banner.hidden {
+    display: none;
+}
+
+.edit-banner-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: #ffaa32;
+}
+
+.edit-banner-icon {
+    display: flex;
+    color: #ffaa32;
+}
+
+.edit-banner-close {
+    background: none;
+    border: 1px solid rgba(255, 170, 50, 0.35);
+    color: #ffaa32;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.edit-banner-close:active {
+    background: rgba(255, 170, 50, 0.15);
+}
+
+/* ─── Edit Mode Color Shift ─── */
+body.edit-mode {
+    --accent-entry: #ffaa32;
+}
+
+body.edit-mode .header h1 {
+    background: linear-gradient(135deg, #ffaa32, #ff8800);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+body.edit-mode .live-clock {
+    color: #ffaa32;
+    font-size: 2rem;
+    font-weight: 400;
+}
+
+body.edit-mode .clock-hint {
+    color: #ffaa32;
+    opacity: 0.7;
+}
+
+body.edit-mode .action-btn.entry {
+    background: #ffaa32;
+}
+
+body.edit-mode .action-btn.suggested {
+    box-shadow: 0 0 20px rgba(255, 170, 50, 0.3);
+}
+
+body.edit-mode .today-badge {
+    color: #ffaa32;
+    background: rgba(255, 170, 50, 0.1);
+}
+
 /* ─── Header ─── */
 .header {
     display: flex;
@@ -490,6 +571,23 @@ html, body {
 
 .weekly-table .today-row .day-name {
     color: var(--accent-entry);
+}
+
+.weekly-table .tappable-row {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.weekly-table .tappable-row:active {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.weekly-table .editing-row {
+    background: rgba(255, 170, 50, 0.08);
+}
+
+.weekly-table .editing-row .day-name {
+    color: #ffaa32;
 }
 
 .special-badge {

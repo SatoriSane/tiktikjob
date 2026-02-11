@@ -7,6 +7,8 @@ const DEFAULT_SETTINGS = { dailyHours: 7, dailyMinutes: 30, weeklyHours: 41 };
 // ─── State ───
 let settings = loadSettings();
 let editingRecordIndex = null;
+let editingDate = null;
+let pendingQuickType = null;
 let toastTimer = null;
 let clockInterval = null;
 
@@ -15,7 +17,8 @@ const $ = id => document.getElementById(id);
 const el = {
     currentDate: $('currentDate'), liveClock: $('liveClock'), clockHint: $('clockHint'),
     entryBtn: $('entryBtn'), exitBtn: $('exitBtn'),
-    todayRecords: $('todayRecords'), todayTotal: $('todayTotal'),
+    todayRecords: $('todayRecords'), todayTotal: $('todayTotal'), todaySectionTitle: $('todaySectionTitle'),
+    editBanner: $('editBanner'), editBannerDate: $('editBannerDate'), editBannerClose: $('editBannerClose'),
     weeklyProgress: $('weeklyProgress'), weeklyTable: $('weeklyTable'),
     toast: $('toast'),
     timeModal: $('timeModal'), modalTitle: $('modalTitle'),
@@ -100,8 +103,10 @@ function calcWeek() {
     return { totalWorked: totalW, weeklyTarget: wTarget, extra: totalW - wTarget, dailyData: data };
 }
 
+function getActiveDate() { return editingDate || getDateKey(); }
+
 function getNextAction() {
-    const dr = getDayRecords(getDateKey());
+    const dr = getDayRecords(getActiveDate());
     const entries = dr.entries || [];
     if (entries.length === 0) return 'entry';
     const sorted = [...entries].sort((a, b) => t2m(a.time) - t2m(b.time));
@@ -119,6 +124,7 @@ function showToast(msg, type) {
 
 // ─── Live Clock ───
 function startClock() {
+    clearInterval(clockInterval);
     function tick() {
         const n = new Date();
         el.liveClock.textContent = `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
@@ -135,11 +141,21 @@ function updateSuggested() {
 }
 
 function renderDate() {
-    el.currentDate.textContent = formatDate(new Date());
+    if (editingDate) {
+        const d = new Date(editingDate + 'T12:00:00');
+        el.currentDate.textContent = formatDate(d);
+        el.liveClock.textContent = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+        el.clockHint.textContent = 'Editando este día';
+        el.todaySectionTitle.textContent = getDayName(d).charAt(0).toUpperCase() + getDayName(d).slice(1);
+    } else {
+        el.currentDate.textContent = formatDate(new Date());
+        el.todaySectionTitle.textContent = 'Hoy';
+        el.clockHint.textContent = 'Toca un botón para registrar esta hora';
+    }
 }
 
 function renderToday() {
-    const dk = getDateKey(), dr = getDayRecords(dk);
+    const dk = getActiveDate(), dr = getDayRecords(dk);
     const hasEntries = dr.entries && dr.entries.length > 0;
     const hasSpecial = !!dr.specialDay;
     let html = '';
@@ -252,8 +268,10 @@ function renderWeekProgress() {
 function renderWeekTable() {
     const s = calcWeek();
     const rows = s.dailyData.map(d => {
+        const isEditing = editingDate === d.dateKey;
+        const rowClass = [d.isToday && !editingDate ? 'today-row' : '', isEditing ? 'editing-row' : ''].filter(Boolean).join(' ');
         if (d.worked <= 0) {
-            return `<tr class="${d.isToday ? 'today-row' : ''}">
+            return `<tr class="${rowClass} tappable-row" onclick="enterEditMode('${d.dateKey}')">
                 <td class="day-name">${d.dayName.charAt(0).toUpperCase() + d.dayName.slice(1)}</td>
                 <td>${d.date.getDate()}/${d.date.getMonth()+1}</td>
                 <td>-</td></tr>`;
@@ -272,28 +290,57 @@ function renderWeekTable() {
             const tag = d.specialDay === 'vacation' ? 'vac' : 'fer';
             detail = `<span class="special-badge ${tag}">${hours}h ${minutes}m ${tag.toUpperCase()}</span>`;
         }
-        return `<tr class="${d.isToday ? 'today-row' : ''}">
+        return `<tr class="${rowClass} tappable-row" onclick="enterEditMode('${d.dateKey}')">
             <td class="day-name">${d.dayName.charAt(0).toUpperCase() + d.dayName.slice(1)}</td>
             <td>${d.date.getDate()}/${d.date.getMonth()+1}</td>
             <td>${detail}</td></tr>`;
     }).join('');
-    el.weeklyTable.innerHTML = `<table class="weekly-table"><thead><tr><th>D\u00eda</th><th>Fecha</th><th>Trabajado</th></tr></thead><tbody>${rows}</tbody></table>`;
+    el.weeklyTable.innerHTML = `<table class="weekly-table"><thead><tr><th>Día</th><th>Fecha</th><th>Trabajado</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ─── Edit Mode ───
+function enterEditMode(dateKey) {
+    if (dateKey === getDateKey()) { exitEditMode(); return; }
+    editingDate = dateKey;
+    const d = new Date(dateKey + 'T12:00:00');
+    el.editBannerDate.textContent = formatDate(d);
+    el.editBanner.classList.remove('hidden');
+    document.body.classList.add('edit-mode');
+    clearInterval(clockInterval);
+    refreshUI();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function exitEditMode() {
+    editingDate = null;
+    pendingQuickType = null;
+    el.editBanner.classList.add('hidden');
+    document.body.classList.remove('edit-mode');
+    startClock();
+    refreshUI();
 }
 
 function refreshUI() { renderDate(); renderToday(); renderWeekProgress(); renderWeekTable(); }
 
 // ─── Actions ───
 function quickRegister(type) {
+    if (editingDate) {
+        pendingQuickType = type;
+        el.modalTitle.textContent = `${type === 'entry' ? 'Entrada' : 'Salida'} — ${formatDate(new Date(editingDate + 'T12:00:00'))}`;
+        el.timePicker.value = '09:00';
+        el.timeModal.classList.add('active');
+        return;
+    }
     const time = getNow();
     const dk = getDateKey(), dr = getDayRecords(dk);
     dr.entries.push({ type, time });
     saveDayRecords(dk, dr);
     refreshUI();
-    showToast(`${type === 'entry' ? 'Entrada' : 'Salida'} registrada \u2022 ${time}`, type);
+    showToast(`${type === 'entry' ? 'Entrada' : 'Salida'} registrada • ${time}`, type);
 }
 
 function editRecord(index) {
-    const dk = getDateKey(), dr = getDayRecords(dk);
+    const dk = getActiveDate(), dr = getDayRecords(dk);
     const sorted = [...dr.entries].sort((a, b) => t2m(a.time) - t2m(b.time));
     const rec = sorted[index];
     editingRecordIndex = index;
@@ -303,8 +350,21 @@ function editRecord(index) {
 }
 
 function saveEditedRecord() {
+    // Handle pending quick register for edit mode
+    if (pendingQuickType) {
+        const type = pendingQuickType;
+        const time = el.timePicker.value;
+        pendingQuickType = null;
+        const dk = getActiveDate(), dr = getDayRecords(dk);
+        dr.entries.push({ type, time });
+        saveDayRecords(dk, dr);
+        closeModal(el.timeModal);
+        refreshUI();
+        showToast(`${type === 'entry' ? 'Entrada' : 'Salida'} registrada • ${time}`, type);
+        return;
+    }
     if (editingRecordIndex === null) return;
-    const dk = getDateKey(), dr = getDayRecords(dk);
+    const dk = getActiveDate(), dr = getDayRecords(dk);
     const sorted = [...dr.entries].sort((a, b) => t2m(a.time) - t2m(b.time));
     const target = sorted[editingRecordIndex];
     const origIdx = dr.entries.findIndex(r => r.type === target.type && r.time === target.time);
@@ -319,7 +379,7 @@ function saveEditedRecord() {
 }
 
 function deleteRecord(index) {
-    const dk = getDateKey(), dr = getDayRecords(dk);
+    const dk = getActiveDate(), dr = getDayRecords(dk);
     const sorted = [...dr.entries].sort((a, b) => t2m(a.time) - t2m(b.time));
     const target = sorted[index];
     const origIdx = dr.entries.findIndex(r => r.type === target.type && r.time === target.time);
@@ -327,7 +387,7 @@ function deleteRecord(index) {
 }
 
 function setSpecialDay(type, vacMin) {
-    const dk = getDateKey(), dr = getDayRecords(dk);
+    const dk = getActiveDate(), dr = getDayRecords(dk);
     dr.specialDay = type;
     if (type === 'vacation' && vacMin !== undefined) dr.vacationMinutes = vacMin;
     else delete dr.vacationMinutes;
@@ -338,7 +398,7 @@ function setSpecialDay(type, vacMin) {
 }
 
 function removeSpecialDay() {
-    const dk = getDateKey(), dr = getDayRecords(dk);
+    const dk = getActiveDate(), dr = getDayRecords(dk);
     dr.specialDay = null; delete dr.vacationMinutes;
     saveDayRecords(dk, dr);
     refreshUI(); showToast('D\u00eda especial eliminado', 'exit');
@@ -486,7 +546,7 @@ el.vacationHoursModal.querySelectorAll('.preset-btn').forEach(btn => {
 });
 
 // Edit time modal
-el.cancelTime.addEventListener('click', () => { closeModal(el.timeModal); editingRecordIndex = null; });
+el.cancelTime.addEventListener('click', () => { closeModal(el.timeModal); editingRecordIndex = null; pendingQuickType = null; });
 el.confirmTime.addEventListener('click', saveEditedRecord);
 
 // Settings
@@ -498,9 +558,12 @@ el.cancelSettings.addEventListener('click', () => closeModal(el.settingsModal));
 el.saveSettings.addEventListener('click', saveSettingsFromModal);
 el.exportExcel.addEventListener('click', exportToExcel);
 
+// Edit mode
+el.editBannerClose.addEventListener('click', exitEditMode);
+
 // Close modals on backdrop
 [el.timeModal, el.settingsModal, el.vacationHoursModal].forEach(m => {
-    m.addEventListener('click', e => { if (e.target === m) closeModal(m); });
+    m.addEventListener('click', e => { if (e.target === m) { closeModal(m); pendingQuickType = null; } });
 });
 
 // Globals for inline onclick
@@ -509,6 +572,7 @@ window.removeSpecialDay = removeSpecialDay;
 window.editRecord = editRecord;
 window.handleVacation = () => openVacationHoursModal();
 window.handleHoliday = () => setSpecialDay('holiday');
+window.enterEditMode = enterEditMode;
 
 // ─── Init ───
 startClock();
