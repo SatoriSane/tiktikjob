@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tictac-job-v9';
+const CACHE_NAME = 'tictac-job-v10';
 const urlsToCache = [
     './',
     './index.html',

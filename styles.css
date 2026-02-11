@@ -17,7 +17,7 @@
     --border-color: #2a2a4a;
     --radius: 16px;
     --radius-sm: 12px;
-    --bottom-bar-h: 96px;
+    --bottom-bar-h: 76px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -138,19 +138,13 @@ html, body {
     left: 0;
     right: 0;
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    gap: 12px;
     padding: 10px 20px;
     padding-bottom: calc(10px + var(--safe-bottom));
     background: linear-gradient(to top, var(--bg-primary) 80%, transparent);
     z-index: 100;
     max-width: 480px;
     margin: 0 auto;
-}
-
-.bottom-bar-main {
-    display: flex;
-    gap: 12px;
 }
 
 .action-btn {
@@ -249,68 +243,66 @@ html, body {
     overflow: hidden;
 }
 
-/* ─── Special Day Bar ─── */
-.special-day-bar {
-    text-align: center;
+/* ─── Day Type Picker (inline in today section) ─── */
+.day-type-picker {
+    display: flex;
+    gap: 10px;
+    padding: 14px;
 }
 
-.special-day-bar.hidden {
-    display: none;
-}
-
-.special-day-toggle {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    letter-spacing: 0.02em;
+.day-type-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 10px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
     cursor: pointer;
-    padding: 2px 8px;
+    transition: all 0.15s ease;
+}
+
+.day-type-card:active {
+    transform: scale(0.97);
+}
+
+.day-type-card.vacation:active {
+    border-color: var(--accent-entry);
+    color: var(--accent-entry);
+}
+
+.day-type-card.holiday:active {
+    border-color: var(--accent-special);
+    color: var(--accent-special);
+}
+
+.day-type-card .card-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.add-vacation-link {
+    display: block;
+    text-align: center;
+    padding: 10px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
     transition: color 0.15s;
 }
 
-.special-day-toggle:active {
+.add-vacation-link:active {
     color: var(--text-secondary);
 }
 
-.special-day-toggle.hidden {
-    display: none;
-}
-
-.special-day-options {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-}
-
-.special-day-options.hidden {
-    display: none;
-}
-
-.special-day-opt {
-    padding: 5px 14px;
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    background: none;
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.special-day-opt:active {
-    color: var(--text-secondary);
-    border-color: var(--text-muted);
-}
-
-.records-list:empty::after {
-    content: 'Sin registros';
-    display: block;
-    padding: 24px;
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-}
 
 .record-item {
     display: flex;

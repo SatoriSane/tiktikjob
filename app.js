@@ -20,9 +20,6 @@ const el = {
     toast: $('toast'),
     timeModal: $('timeModal'), modalTitle: $('modalTitle'),
     timePicker: $('timePicker'), cancelTime: $('cancelTime'), confirmTime: $('confirmTime'),
-    specialDayToggle: $('specialDayToggle'), specialDayOptions: $('specialDayOptions'),
-    specialDayBar: $('specialDayBar'),
-    vacationBtn: $('vacationBtn'), holidayBtn: $('holidayBtn'),
     vacationHoursModal: $('vacationHoursModal'), vacationCustom: $('vacationCustom'),
     vacHours: $('vacHours'), vacMinutes: $('vacMinutes'),
     vacationPreview: $('vacationPreview'), cancelVacation: $('cancelVacation'),
@@ -143,10 +140,12 @@ function renderDate() {
 
 function renderToday() {
     const dk = getDateKey(), dr = getDayRecords(dk);
+    const hasEntries = dr.entries && dr.entries.length > 0;
+    const hasSpecial = !!dr.specialDay;
     let html = '';
 
     // Render entry/exit records
-    if (dr.entries && dr.entries.length > 0) {
+    if (hasEntries) {
         const sorted = [...dr.entries].sort((a, b) => t2m(a.time) - t2m(b.time));
         html += sorted.map((rec, i) => `
             <div class="record-item" onclick="editRecord(${i})">
@@ -163,8 +162,8 @@ function renderToday() {
             </div>`).join('');
     }
 
-    // Render special day badge (vacation/holiday)
-    if (dr.specialDay) {
+    // Render special day badge
+    if (hasSpecial) {
         const label = dr.specialDay === 'vacation' ? 'Vacaci\u00f3n' : 'Feriado';
         const vacW = dr.specialDay === 'vacation' && dr.vacationMinutes !== undefined
             ? dr.vacationMinutes : settings.dailyHours * 60 + settings.dailyMinutes;
@@ -184,6 +183,25 @@ function renderToday() {
             </div>`;
     }
 
+    // Day type picker: show when no special day is set
+    if (!hasSpecial) {
+        if (!hasEntries) {
+            // Empty day — show prominent cards
+            html += `
+                <div class="day-type-picker">
+                    <button class="day-type-card vacation" onclick="handleVacation()">
+                        <span class="card-icon">\u2600\uFE0F</span> Vacaci\u00f3n
+                    </button>
+                    <button class="day-type-card holiday" onclick="handleHoliday()">
+                        <span class="card-icon">\u2B50</span> Feriado
+                    </button>
+                </div>`;
+        } else {
+            // Has entries — show subtle link
+            html += `<button class="add-vacation-link" onclick="handleVacation()">+ A\u00f1adir horas de vacaci\u00f3n</button>`;
+        }
+    }
+
     el.todayRecords.innerHTML = html;
 
     // Total with breakdown
@@ -191,7 +209,7 @@ function renderToday() {
     const totalMin = calcDay(dr);
     if (totalMin > 0) {
         const { hours: tH, minutes: tM } = m2t(totalMin);
-        if (dr.specialDay && workedMin > 0) {
+        if (hasSpecial && workedMin > 0) {
             const { hours: wH, minutes: wM } = m2t(workedMin);
             const vacMin = totalMin - workedMin;
             const { hours: vH, minutes: vM } = m2t(vacMin);
@@ -202,15 +220,6 @@ function renderToday() {
         }
     } else {
         el.todayTotal.textContent = '';
-    }
-
-    // Show/hide special day bar in bottom bar
-    if (dr.specialDay) {
-        el.specialDayBar.classList.add('hidden');
-    } else {
-        el.specialDayBar.classList.remove('hidden');
-        el.specialDayToggle.classList.remove('hidden');
-        el.specialDayOptions.classList.add('hidden');
     }
     updateSuggested();
 }
@@ -453,14 +462,6 @@ function exportToExcel() {
 el.entryBtn.addEventListener('click', () => quickRegister('entry'));
 el.exitBtn.addEventListener('click', () => quickRegister('exit'));
 
-// Special day — subtle toggle in bottom bar
-el.specialDayToggle.addEventListener('click', () => {
-    el.specialDayToggle.classList.add('hidden');
-    el.specialDayOptions.classList.remove('hidden');
-});
-el.vacationBtn.addEventListener('click', () => openVacationHoursModal());
-el.holidayBtn.addEventListener('click', () => setSpecialDay('holiday'));
-
 // Vacation hours
 el.cancelVacation.addEventListener('click', () => closeModal(el.vacationHoursModal));
 el.confirmVacation.addEventListener('click', () => setSpecialDay('vacation', getVacMinutes()));
@@ -506,6 +507,8 @@ el.exportExcel.addEventListener('click', exportToExcel);
 window.deleteRecord = deleteRecord;
 window.removeSpecialDay = removeSpecialDay;
 window.editRecord = editRecord;
+window.handleVacation = () => openVacationHoursModal();
+window.handleHoliday = () => setSpecialDay('holiday');
 
 // ─── Init ───
 startClock();
