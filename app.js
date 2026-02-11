@@ -1,792 +1,518 @@
 // TicTic Job - Time Tracking PWA
 
-// Storage keys
-const STORAGE_KEYS = {
-    RECORDS: 'tictac_records',
-    SETTINGS: 'tictac_settings'
-};
+// ─── Storage keys ───
+const STORAGE_KEYS = { RECORDS: 'tictac_records', SETTINGS: 'tictac_settings' };
+const DEFAULT_SETTINGS = { dailyHours: 7, dailyMinutes: 30, weeklyHours: 41 };
 
-// Default settings
-const DEFAULT_SETTINGS = {
-    dailyHours: 7,
-    dailyMinutes: 30,
-    weeklyHours: 41
-};
-
-// State
-let currentAction = null;
+// ─── State ───
 let settings = loadSettings();
+let editingRecordIndex = null;
+let toastTimer = null;
+let clockInterval = null;
 
-// DOM Elements
-const elements = {
-    currentDate: document.getElementById('currentDate'),
-    entryBtn: document.getElementById('entryBtn'),
-    exitBtn: document.getElementById('exitBtn'),
-    specialDayBtn: document.getElementById('specialDayBtn'),
-    todayRecords: document.getElementById('todayRecords'),
-    todayTotal: document.getElementById('todayTotal'),
-    weeklySummary: document.getElementById('weeklySummary'),
-    weeklyTable: document.getElementById('weeklyTable'),
-    
-    // Time Modal
-    timeModal: document.getElementById('timeModal'),
-    modalTitle: document.getElementById('modalTitle'),
-    timePicker: document.getElementById('timePicker'),
-    cancelTime: document.getElementById('cancelTime'),
-    confirmTime: document.getElementById('confirmTime'),
-    
-    // Special Day Modal
-    specialDayModal: document.getElementById('specialDayModal'),
-    vacationBtn: document.getElementById('vacationBtn'),
-    holidayBtn: document.getElementById('holidayBtn'),
-    cancelSpecial: document.getElementById('cancelSpecial'),
-    
-    // Settings Modal
-    settingsBtn: document.getElementById('settingsBtn'),
-    settingsModal: document.getElementById('settingsModal'),
-    dailyHours: document.getElementById('dailyHours'),
-    dailyMinutes: document.getElementById('dailyMinutes'),
-    weeklyHours: document.getElementById('weeklyHours'),
-    cancelSettings: document.getElementById('cancelSettings'),
-    saveSettings: document.getElementById('saveSettings'),
-    exportExcel: document.getElementById('exportExcel'),
-
-    // Vacation Hours Modal
-    vacationHoursModal: document.getElementById('vacationHoursModal'),
-    vacationCustom: document.getElementById('vacationCustom'),
-    vacHours: document.getElementById('vacHours'),
-    vacMinutes: document.getElementById('vacMinutes'),
-    vacationPreview: document.getElementById('vacationPreview'),
-    cancelVacation: document.getElementById('cancelVacation'),
-    confirmVacation: document.getElementById('confirmVacation')
+// ─── DOM ───
+const $ = id => document.getElementById(id);
+const el = {
+    currentDate: $('currentDate'), liveClock: $('liveClock'), clockHint: $('clockHint'),
+    entryBtn: $('entryBtn'), exitBtn: $('exitBtn'),
+    todayRecords: $('todayRecords'), todayTotal: $('todayTotal'),
+    weeklyProgress: $('weeklyProgress'), weeklyTable: $('weeklyTable'),
+    toast: $('toast'),
+    timeModal: $('timeModal'), modalTitle: $('modalTitle'),
+    timePicker: $('timePicker'), cancelTime: $('cancelTime'), confirmTime: $('confirmTime'),
+    specialDayToggle: $('specialDayToggle'), specialDayOptions: $('specialDayOptions'),
+    specialDayBar: $('specialDayBar'),
+    vacationBtn: $('vacationBtn'), holidayBtn: $('holidayBtn'),
+    vacationHoursModal: $('vacationHoursModal'), vacationCustom: $('vacationCustom'),
+    vacHours: $('vacHours'), vacMinutes: $('vacMinutes'),
+    vacationPreview: $('vacationPreview'), cancelVacation: $('cancelVacation'),
+    confirmVacation: $('confirmVacation'),
+    settingsBtn: $('settingsBtn'), settingsModal: $('settingsModal'),
+    dailyHours: $('dailyHours'), dailyMinutes: $('dailyMinutes'),
+    weeklyHours: $('weeklyHours'), cancelSettings: $('cancelSettings'),
+    saveSettings: $('saveSettings'), exportExcel: $('exportExcel')
 };
 
-// Utility Functions
+// ─── Utilities ───
 function formatDate(date) {
-    const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-    return date.toLocaleDateString('es-ES', options);
+    return date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 }
-
-function formatTime(hours, minutes) {
-    return `${hours}h ${minutes}min`;
-}
-
-function getDateKey(date = new Date()) {
-    return date.toISOString().split('T')[0];
-}
-
+function fmt(h, m) { return `${h}h ${m}min`; }
+function getDateKey(date = new Date()) { return date.toISOString().split('T')[0]; }
 function getWeekStart(date = new Date()) {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    d.setDate(diff);
-    d.setHours(0, 0, 0, 0);
-    return d;
+    const d = new Date(date); const day = d.getDay();
+    d.setDate(d.getDate() - day + (day === 0 ? -6 : 1));
+    d.setHours(0, 0, 0, 0); return d;
 }
-
-function getWeekDays(weekStart) {
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-        const d = new Date(weekStart);
-        d.setDate(d.getDate() + i);
-        days.push(d);
-    }
-    return days;
+function getWeekDays(ws) {
+    const days = []; for (let i = 0; i < 7; i++) { const d = new Date(ws); d.setDate(d.getDate() + i); days.push(d); } return days;
 }
-
-function getDayName(date) {
-    return date.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', '');
+function getDayName(d) { return d.toLocaleDateString('es-ES', { weekday: 'short' }).replace('.', ''); }
+function getNow() {
+    const n = new Date();
+    return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
 }
+function t2m(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function m2t(m) { return { hours: Math.floor(m / 60), minutes: m % 60 }; }
 
-function getCurrentTime() {
-    const now = new Date();
-    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-}
+// ─── Storage ───
+function loadSettings() { const s = localStorage.getItem(STORAGE_KEYS.SETTINGS); return s ? JSON.parse(s) : { ...DEFAULT_SETTINGS }; }
+function saveSettings2() { localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings)); }
+function loadRecords() { const s = localStorage.getItem(STORAGE_KEYS.RECORDS); return s ? JSON.parse(s) : {}; }
+function saveRecords(r) { localStorage.setItem(STORAGE_KEYS.RECORDS, JSON.stringify(r)); }
+function getDayRecords(dk) { const r = loadRecords(); return r[dk] || { entries: [], specialDay: null }; }
+function saveDayRecords(dk, dr) { const r = loadRecords(); r[dk] = dr; saveRecords(r); }
 
-function timeToMinutes(timeStr) {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return hours * 60 + minutes;
-}
-
-function minutesToTime(totalMinutes) {
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return { hours, minutes };
-}
-
-// Storage Functions
-function loadSettings() {
-    const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    return stored ? JSON.parse(stored) : { ...DEFAULT_SETTINGS };
-}
-
-function saveSettingsToStorage() {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-}
-
-function loadRecords() {
-    const stored = localStorage.getItem(STORAGE_KEYS.RECORDS);
-    return stored ? JSON.parse(stored) : {};
-}
-
-function saveRecords(records) {
-    localStorage.setItem(STORAGE_KEYS.RECORDS, JSON.stringify(records));
-}
-
-function getDayRecords(dateKey) {
-    const records = loadRecords();
-    return records[dateKey] || { entries: [], specialDay: null };
-}
-
-function saveDayRecords(dateKey, dayRecords) {
-    const records = loadRecords();
-    records[dateKey] = dayRecords;
-    saveRecords(records);
-}
-
-// Calculate worked time for a day
-function calculateDayWorked(dayRecords) {
-    if (dayRecords.specialDay) {
-        if (dayRecords.specialDay === 'vacation' && dayRecords.vacationMinutes !== undefined) {
-            return dayRecords.vacationMinutes;
-        }
-        return settings.dailyHours * 60 + settings.dailyMinutes;
-    }
-    
-    const entries = dayRecords.entries || [];
-    let totalMinutes = 0;
-    
-    // Sort entries by time
-    const sorted = [...entries].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
-    
-    // Pair entries (entry -> exit)
+// ─── Calculations ───
+function calcWorkedEntries(entries) {
+    let total = 0;
+    const sorted = [...(entries || [])].sort((a, b) => t2m(a.time) - t2m(b.time));
     let i = 0;
     while (i < sorted.length) {
         if (sorted[i].type === 'entry') {
-            const entryTime = timeToMinutes(sorted[i].time);
-            // Find next exit
-            let exitTime = null;
+            const eTime = t2m(sorted[i].time); let xTime = null;
             for (let j = i + 1; j < sorted.length; j++) {
-                if (sorted[j].type === 'exit') {
-                    exitTime = timeToMinutes(sorted[j].time);
-                    i = j;
-                    break;
-                }
+                if (sorted[j].type === 'exit') { xTime = t2m(sorted[j].time); i = j; break; }
             }
-            if (exitTime !== null) {
-                totalMinutes += exitTime - entryTime;
-            }
+            if (xTime !== null) total += xTime - eTime;
         }
         i++;
     }
-    
-    return totalMinutes;
+    return total;
 }
 
-// Calculate weekly summary
-function calculateWeeklySummary() {
-    const weekStart = getWeekStart();
-    const weekDays = getWeekDays(weekStart);
-    const dailyTarget = settings.dailyHours * 60 + settings.dailyMinutes;
-    const weeklyTarget = settings.weeklyHours * 60;
-    
-    let totalWorked = 0;
-    const dailyData = [];
-    
-    weekDays.forEach(day => {
-        const dateKey = getDateKey(day);
-        const dayRecords = getDayRecords(dateKey);
-        const worked = calculateDayWorked(dayRecords);
-        totalWorked += worked;
-        
-        dailyData.push({
-            date: day,
-            dateKey,
-            dayName: getDayName(day),
-            worked,
-            specialDay: dayRecords.specialDay,
-            isToday: dateKey === getDateKey()
-        });
+function calcDay(dr) {
+    let total = calcWorkedEntries(dr.entries);
+    if (dr.specialDay === 'holiday') {
+        total += settings.dailyHours * 60 + settings.dailyMinutes;
+    } else if (dr.specialDay === 'vacation' && dr.vacationMinutes !== undefined) {
+        total += dr.vacationMinutes;
+    }
+    return total;
+}
+
+function calcWeek() {
+    const ws = getWeekStart(), days = getWeekDays(ws);
+    const wTarget = settings.weeklyHours * 60;
+    let totalW = 0; const data = [];
+    days.forEach(day => {
+        const dk = getDateKey(day), dr = getDayRecords(dk), w = calcDay(dr);
+        totalW += w;
+        data.push({ date: day, dateKey: dk, dayName: getDayName(day), worked: w, specialDay: dr.specialDay, isToday: dk === getDateKey() });
     });
-    
-    const extraMinutes = totalWorked - weeklyTarget;
-    
-    return {
-        totalWorked,
-        weeklyTarget,
-        extraMinutes,
-        dailyTarget,
-        dailyData
-    };
+    return { totalWorked: totalW, weeklyTarget: wTarget, extra: totalW - wTarget, dailyData: data };
 }
 
-// UI Functions
-function updateCurrentDate() {
-    elements.currentDate.textContent = formatDate(new Date());
+function getNextAction() {
+    const dr = getDayRecords(getDateKey());
+    const entries = dr.entries || [];
+    if (entries.length === 0) return 'entry';
+    const sorted = [...entries].sort((a, b) => t2m(a.time) - t2m(b.time));
+    return sorted[sorted.length - 1].type === 'entry' ? 'exit' : 'entry';
 }
 
-function renderTodayRecords() {
-    const dateKey = getDateKey();
-    const dayRecords = getDayRecords(dateKey);
-    
-    if (dayRecords.specialDay) {
-        elements.todayRecords.innerHTML = `
-            <div class="record-item">
-                <div class="record-icon special">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        ${dayRecords.specialDay === 'vacation' 
-                            ? '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>'
-                            : '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>'
-                        }
-                    </svg>
-                </div>
-                <div class="record-info">
-                    <div class="record-type">${dayRecords.specialDay === 'vacation' ? 'Vacación' : 'Feriado'}</div>
-                    <div class="record-time">${(() => { const m = calculateDayWorked(dayRecords); const t = minutesToTime(m); return formatTime(t.hours, t.minutes); })()} acreditadas</div>
-                </div>
-                <button class="record-delete" onclick="removeSpecialDay()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-        `;
-    } else if (dayRecords.entries.length === 0) {
-        elements.todayRecords.innerHTML = `
-            <div class="empty-state">
-                No hay registros hoy
-            </div>
-        `;
-    } else {
-        const sorted = [...dayRecords.entries].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
-        elements.todayRecords.innerHTML = sorted.map((record, index) => `
-            <div class="record-item">
-                <div class="record-icon ${record.type}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        ${record.type === 'entry' 
-                            ? '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line>'
-                            : '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>'
-                        }
-                    </svg>
-                </div>
-                <div class="record-info">
-                    <div class="record-type">${record.type === 'entry' ? 'Entrada' : 'Salida'}</div>
-                    <div class="record-time">${record.time}</div>
-                </div>
-                <button class="record-delete" onclick="deleteRecord(${index})">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-        `).join('');
+// ─── Toast ───
+function showToast(msg, type) {
+    clearTimeout(toastTimer);
+    el.toast.textContent = msg;
+    el.toast.className = 'toast ' + type;
+    requestAnimationFrame(() => el.toast.classList.add('show'));
+    toastTimer = setTimeout(() => el.toast.classList.remove('show'), 2200);
+}
+
+// ─── Live Clock ───
+function startClock() {
+    function tick() {
+        const n = new Date();
+        el.liveClock.textContent = `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
     }
-    
-    // Update today's total
-    const worked = calculateDayWorked(dayRecords);
-    const { hours, minutes } = minutesToTime(worked);
-    if (worked > 0) {
-        elements.todayTotal.innerHTML = `Trabajado hoy: <strong>${formatTime(hours, minutes)}</strong>`;
-        elements.todayTotal.style.display = 'block';
-    } else {
-        elements.todayTotal.style.display = 'none';
+    tick();
+    clockInterval = setInterval(tick, 1000);
+}
+
+// ─── Render ───
+function updateSuggested() {
+    const next = getNextAction();
+    el.entryBtn.classList.toggle('suggested', next === 'entry');
+    el.exitBtn.classList.toggle('suggested', next === 'exit');
+}
+
+function renderDate() {
+    el.currentDate.textContent = formatDate(new Date());
+}
+
+function renderToday() {
+    const dk = getDateKey(), dr = getDayRecords(dk);
+    let html = '';
+
+    // Render entry/exit records
+    if (dr.entries && dr.entries.length > 0) {
+        const sorted = [...dr.entries].sort((a, b) => t2m(a.time) - t2m(b.time));
+        html += sorted.map((rec, i) => `
+            <div class="record-item" onclick="editRecord(${i})">
+                <div class="record-dot ${rec.type}"></div>
+                <div class="record-info">
+                    <div class="record-type">${rec.type === 'entry' ? 'Entrada' : 'Salida'}</div>
+                    <div class="record-time">${rec.time}</div>
+                </div>
+                <div class="record-actions">
+                    <button class="record-action-btn delete" onclick="event.stopPropagation(); deleteRecord(${i})">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+            </div>`).join('');
     }
+
+    // Render special day badge (vacation/holiday)
+    if (dr.specialDay) {
+        const label = dr.specialDay === 'vacation' ? 'Vacaci\u00f3n' : 'Feriado';
+        const vacW = dr.specialDay === 'vacation' && dr.vacationMinutes !== undefined
+            ? dr.vacationMinutes : settings.dailyHours * 60 + settings.dailyMinutes;
+        const { hours, minutes } = m2t(vacW);
+        html += `
+            <div class="record-item">
+                <div class="record-dot special"></div>
+                <div class="record-info">
+                    <div class="record-type">${label}</div>
+                    <div class="record-time">${fmt(hours, minutes)} acreditadas</div>
+                </div>
+                <div class="record-actions">
+                    <button class="record-action-btn delete" onclick="removeSpecialDay()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    el.todayRecords.innerHTML = html;
+
+    // Total with breakdown
+    const workedMin = calcWorkedEntries(dr.entries);
+    const totalMin = calcDay(dr);
+    if (totalMin > 0) {
+        const { hours: tH, minutes: tM } = m2t(totalMin);
+        if (dr.specialDay && workedMin > 0) {
+            const { hours: wH, minutes: wM } = m2t(workedMin);
+            const vacMin = totalMin - workedMin;
+            const { hours: vH, minutes: vM } = m2t(vacMin);
+            const vacLabel = dr.specialDay === 'vacation' ? 'vac' : 'fer';
+            el.todayTotal.textContent = `${fmt(wH, wM)} + ${fmt(vH, vM)} ${vacLabel} = ${fmt(tH, tM)}`;
+        } else {
+            el.todayTotal.textContent = fmt(tH, tM);
+        }
+    } else {
+        el.todayTotal.textContent = '';
+    }
+
+    // Show/hide special day bar in bottom bar
+    if (dr.specialDay) {
+        el.specialDayBar.classList.add('hidden');
+    } else {
+        el.specialDayBar.classList.remove('hidden');
+        el.specialDayToggle.classList.remove('hidden');
+        el.specialDayOptions.classList.add('hidden');
+    }
+    updateSuggested();
 }
 
-function renderWeeklySummary() {
-    const summary = calculateWeeklySummary();
-    const { hours: workedH, minutes: workedM } = minutesToTime(summary.totalWorked);
-    const { hours: targetH, minutes: targetM } = minutesToTime(summary.weeklyTarget);
-    const extraAbs = Math.abs(summary.extraMinutes);
-    const { hours: extraH, minutes: extraM } = minutesToTime(extraAbs);
-    
-    const extraClass = summary.extraMinutes > 0 ? 'positive' : summary.extraMinutes < 0 ? 'negative' : 'neutral';
-    const extraSign = summary.extraMinutes > 0 ? '+' : summary.extraMinutes < 0 ? '-' : '';
-    
-    elements.weeklySummary.innerHTML = `
-        <div class="summary-row">
-            <span class="summary-label">Trabajado</span>
-            <span class="summary-value neutral">${formatTime(workedH, workedM)}</span>
+function renderWeekProgress() {
+    const s = calcWeek();
+    const { hours: wH, minutes: wM } = m2t(s.totalWorked);
+    const { hours: tH, minutes: tM } = m2t(s.weeklyTarget);
+    const pct = s.weeklyTarget > 0 ? Math.min((s.totalWorked / s.weeklyTarget) * 100, 120) : 0;
+    const isOver = s.extra > 0;
+    const absExtra = Math.abs(s.extra);
+    const { hours: eH, minutes: eM } = m2t(absExtra);
+    const sign = s.extra > 0 ? '+' : s.extra < 0 ? '-' : '';
+    const cls = s.extra > 0 ? 'positive' : s.extra < 0 ? 'negative' : 'neutral';
+
+    el.weeklyProgress.innerHTML = `
+        <div class="progress-header">
+            <span class="progress-worked">${fmt(wH, wM)}</span>
+            <span class="progress-target">de ${fmt(tH, tM)}</span>
         </div>
-        <div class="summary-row">
-            <span class="summary-label">Objetivo semanal</span>
-            <span class="summary-value neutral">${formatTime(targetH, targetM)}</span>
+        <div class="progress-bar-track">
+            <div class="progress-bar-fill${isOver ? ' over' : ''}" style="width:${pct}%"></div>
         </div>
-        <div class="summary-row">
-            <span class="summary-label">Horas extra</span>
-            <span class="summary-value ${extraClass}">${extraSign}${formatTime(extraH, extraM)}</span>
-        </div>
-    `;
+        <div class="progress-extra">
+            <span class="progress-extra-label">${isOver ? 'Horas extra' : 'Restante'}</span>
+            <span class="progress-extra-value ${cls}">${sign}${fmt(eH, eM)}</span>
+        </div>`;
 }
 
-function renderWeeklyTable() {
-    const summary = calculateWeeklySummary();
-    
-    const rows = summary.dailyData.map(day => {
-        const { hours, minutes } = minutesToTime(day.worked);
-        const workedStr = day.worked > 0 ? `${hours}h ${minutes}m` : '-';
-        const specialBadge = day.specialDay 
-            ? `<span class="special-badge">${day.specialDay === 'vacation' ? 'VAC' : 'FER'}</span>` 
-            : '';
-        
-        return `
-            <tr class="${day.isToday ? 'today-row' : ''}">
-                <td class="day-name">${day.dayName.charAt(0).toUpperCase() + day.dayName.slice(1)}</td>
-                <td>${day.date.getDate()}/${day.date.getMonth() + 1}</td>
-                <td>${workedStr} ${specialBadge}</td>
-            </tr>
-        `;
+function renderWeekTable() {
+    const s = calcWeek();
+    const rows = s.dailyData.map(d => {
+        if (d.worked <= 0) {
+            return `<tr class="${d.isToday ? 'today-row' : ''}">
+                <td class="day-name">${d.dayName.charAt(0).toUpperCase() + d.dayName.slice(1)}</td>
+                <td>${d.date.getDate()}/${d.date.getMonth()+1}</td>
+                <td>-</td></tr>`;
+        }
+        const dr = getDayRecords(d.dateKey);
+        const workedMin = calcWorkedEntries(dr.entries);
+        const { hours, minutes } = m2t(d.worked);
+        let detail = `${hours}h ${minutes}m`;
+        if (d.specialDay && workedMin > 0) {
+            const vacMin = d.worked - workedMin;
+            const { hours: wH, minutes: wM } = m2t(workedMin);
+            const { hours: vH, minutes: vM } = m2t(vacMin);
+            const tag = d.specialDay === 'vacation' ? 'vac' : 'fer';
+            detail = `${wH}h${wM ? wM + 'm' : ''} + <span class="special-badge ${tag}">${vH}h${vM ? vM + 'm' : ''} ${tag.toUpperCase()}</span>`;
+        } else if (d.specialDay && workedMin === 0) {
+            const tag = d.specialDay === 'vacation' ? 'vac' : 'fer';
+            detail = `<span class="special-badge ${tag}">${hours}h ${minutes}m ${tag.toUpperCase()}</span>`;
+        }
+        return `<tr class="${d.isToday ? 'today-row' : ''}">
+            <td class="day-name">${d.dayName.charAt(0).toUpperCase() + d.dayName.slice(1)}</td>
+            <td>${d.date.getDate()}/${d.date.getMonth()+1}</td>
+            <td>${detail}</td></tr>`;
     }).join('');
-    
-    elements.weeklyTable.innerHTML = `
-        <table class="weekly-table">
-            <thead>
-                <tr>
-                    <th>Día</th>
-                    <th>Fecha</th>
-                    <th>Trabajado</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${rows}
-            </tbody>
-        </table>
-    `;
+    el.weeklyTable.innerHTML = `<table class="weekly-table"><thead><tr><th>D\u00eda</th><th>Fecha</th><th>Trabajado</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function refreshUI() {
-    updateCurrentDate();
-    renderTodayRecords();
-    renderWeeklySummary();
-    renderWeeklyTable();
-}
+function refreshUI() { renderDate(); renderToday(); renderWeekProgress(); renderWeekTable(); }
 
-// Modal Functions
-function openTimeModal(action) {
-    currentAction = action;
-    elements.modalTitle.textContent = action === 'entry' ? 'Registrar Entrada' : 'Registrar Salida';
-    elements.timePicker.value = getCurrentTime();
-    elements.timeModal.classList.add('active');
-}
-
-function closeTimeModal() {
-    elements.timeModal.classList.remove('active');
-    currentAction = null;
-}
-
-function openSpecialDayModal() {
-    elements.specialDayModal.classList.add('active');
-}
-
-function closeSpecialDayModal() {
-    elements.specialDayModal.classList.remove('active');
-}
-
-function openVacationHoursModal() {
-    const maxMinutes = settings.dailyHours * 60 + settings.dailyMinutes;
-    const halfMinutes = Math.round(maxMinutes / 2);
-
-    // Update preset buttons with current settings
-    const presets = elements.vacationHoursModal.querySelectorAll('.preset-btn');
-    presets[0].dataset.minutes = maxMinutes;
-    presets[1].dataset.minutes = halfMinutes;
-
-    // Reset to full day
-    presets.forEach(b => b.classList.remove('active'));
-    presets[0].classList.add('active');
-    elements.vacationCustom.classList.add('hidden');
-    elements.vacHours.value = settings.dailyHours;
-    elements.vacMinutes.value = settings.dailyMinutes;
-    updateVacationPreview(maxMinutes);
-
-    elements.vacationHoursModal.classList.add('active');
-}
-
-function closeVacationHoursModal() {
-    elements.vacationHoursModal.classList.remove('active');
-}
-
-function updateVacationPreview(totalMinutes) {
-    const { hours, minutes } = minutesToTime(totalMinutes);
-    elements.vacationPreview.textContent = formatTime(hours, minutes);
-}
-
-function getSelectedVacationMinutes() {
-    const activePreset = elements.vacationHoursModal.querySelector('.preset-btn.active');
-    if (activePreset && activePreset.dataset.minutes !== '0') {
-        return parseInt(activePreset.dataset.minutes);
-    }
-    // Custom
-    const h = parseInt(elements.vacHours.value) || 0;
-    const m = parseInt(elements.vacMinutes.value) || 0;
-    const maxMinutes = settings.dailyHours * 60 + settings.dailyMinutes;
-    return Math.min(h * 60 + m, maxMinutes);
-}
-
-function openSettingsModal() {
-    elements.dailyHours.value = settings.dailyHours;
-    elements.dailyMinutes.value = settings.dailyMinutes;
-    elements.weeklyHours.value = settings.weeklyHours;
-    elements.settingsModal.classList.add('active');
-}
-
-function closeSettingsModal() {
-    elements.settingsModal.classList.remove('active');
-}
-
-// Action Functions
-function addRecord(type, time) {
-    const dateKey = getDateKey();
-    const dayRecords = getDayRecords(dateKey);
-    
-    // Remove special day if adding regular records
-    if (dayRecords.specialDay) {
-        dayRecords.specialDay = null;
-    }
-    
-    dayRecords.entries.push({ type, time });
-    saveDayRecords(dateKey, dayRecords);
+// ─── Actions ───
+function quickRegister(type) {
+    const time = getNow();
+    const dk = getDateKey(), dr = getDayRecords(dk);
+    dr.entries.push({ type, time });
+    saveDayRecords(dk, dr);
     refreshUI();
+    showToast(`${type === 'entry' ? 'Entrada' : 'Salida'} registrada \u2022 ${time}`, type);
+}
+
+function editRecord(index) {
+    const dk = getDateKey(), dr = getDayRecords(dk);
+    const sorted = [...dr.entries].sort((a, b) => t2m(a.time) - t2m(b.time));
+    const rec = sorted[index];
+    editingRecordIndex = index;
+    el.modalTitle.textContent = `Editar ${rec.type === 'entry' ? 'Entrada' : 'Salida'}`;
+    el.timePicker.value = rec.time;
+    el.timeModal.classList.add('active');
+}
+
+function saveEditedRecord() {
+    if (editingRecordIndex === null) return;
+    const dk = getDateKey(), dr = getDayRecords(dk);
+    const sorted = [...dr.entries].sort((a, b) => t2m(a.time) - t2m(b.time));
+    const target = sorted[editingRecordIndex];
+    const origIdx = dr.entries.findIndex(r => r.type === target.type && r.time === target.time);
+    if (origIdx !== -1) {
+        dr.entries[origIdx].time = el.timePicker.value;
+        saveDayRecords(dk, dr);
+        refreshUI();
+        showToast('Hora actualizada', 'entry');
+    }
+    el.timeModal.classList.remove('active');
+    editingRecordIndex = null;
 }
 
 function deleteRecord(index) {
-    const dateKey = getDateKey();
-    const dayRecords = getDayRecords(dateKey);
-    
-    // Sort to get correct index
-    const sorted = [...dayRecords.entries].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
-    const recordToDelete = sorted[index];
-    
-    // Find and remove from original array
-    const originalIndex = dayRecords.entries.findIndex(
-        r => r.type === recordToDelete.type && r.time === recordToDelete.time
-    );
-    
-    if (originalIndex !== -1) {
-        dayRecords.entries.splice(originalIndex, 1);
-        saveDayRecords(dateKey, dayRecords);
-        refreshUI();
-    }
+    const dk = getDateKey(), dr = getDayRecords(dk);
+    const sorted = [...dr.entries].sort((a, b) => t2m(a.time) - t2m(b.time));
+    const target = sorted[index];
+    const origIdx = dr.entries.findIndex(r => r.type === target.type && r.time === target.time);
+    if (origIdx !== -1) { dr.entries.splice(origIdx, 1); saveDayRecords(dk, dr); refreshUI(); showToast('Registro eliminado', 'exit'); }
 }
 
-function setSpecialDay(type, vacationMinutes) {
-    const dateKey = getDateKey();
-    const dayRecords = { entries: [], specialDay: type };
-    if (type === 'vacation' && vacationMinutes !== undefined) {
-        dayRecords.vacationMinutes = vacationMinutes;
-    }
-    saveDayRecords(dateKey, dayRecords);
-    closeSpecialDayModal();
-    closeVacationHoursModal();
+function setSpecialDay(type, vacMin) {
+    const dk = getDateKey(), dr = getDayRecords(dk);
+    dr.specialDay = type;
+    if (type === 'vacation' && vacMin !== undefined) dr.vacationMinutes = vacMin;
+    else delete dr.vacationMinutes;
+    saveDayRecords(dk, dr);
+    closeModal(el.vacationHoursModal);
     refreshUI();
+    showToast(type === 'vacation' ? 'Vacaci\u00f3n registrada' : 'Feriado registrado', 'entry');
 }
 
 function removeSpecialDay() {
-    const dateKey = getDateKey();
-    const dayRecords = { entries: [], specialDay: null };
-    saveDayRecords(dateKey, dayRecords);
-    refreshUI();
+    const dk = getDateKey(), dr = getDayRecords(dk);
+    dr.specialDay = null; delete dr.vacationMinutes;
+    saveDayRecords(dk, dr);
+    refreshUI(); showToast('D\u00eda especial eliminado', 'exit');
 }
 
 function saveSettingsFromModal() {
-    settings.dailyHours = parseInt(elements.dailyHours.value) || 7;
-    settings.dailyMinutes = parseInt(elements.dailyMinutes.value) || 30;
-    settings.weeklyHours = parseInt(elements.weeklyHours.value) || 41;
-    saveSettingsToStorage();
-    closeSettingsModal();
-    refreshUI();
+    settings.dailyHours = parseInt(el.dailyHours.value) || 7;
+    settings.dailyMinutes = parseInt(el.dailyMinutes.value) || 30;
+    settings.weeklyHours = parseInt(el.weeklyHours.value) || 41;
+    saveSettings2(); closeModal(el.settingsModal); refreshUI();
+    showToast('Configuraci\u00f3n guardada', 'entry');
 }
 
-// Excel Export Functions
+// ─── Modals ───
+function closeModal(m) { m.classList.remove('active'); }
+
+function openVacationHoursModal() {
+    const max = settings.dailyHours * 60 + settings.dailyMinutes;
+    const half = Math.round(max / 2);
+    const presets = el.vacationHoursModal.querySelectorAll('.preset-btn');
+    presets[0].dataset.minutes = max; presets[1].dataset.minutes = half;
+    presets.forEach(b => b.classList.remove('active')); presets[0].classList.add('active');
+    el.vacationCustom.classList.add('hidden');
+    el.vacHours.value = settings.dailyHours; el.vacMinutes.value = settings.dailyMinutes;
+    updateVacPreview(max);
+    el.vacationHoursModal.classList.add('active');
+}
+
+function updateVacPreview(m) { const t = m2t(m); el.vacationPreview.textContent = fmt(t.hours, t.minutes); }
+
+function getVacMinutes() {
+    const active = el.vacationHoursModal.querySelector('.preset-btn.active');
+    if (active && active.dataset.minutes !== '0') return parseInt(active.dataset.minutes);
+    const h = parseInt(el.vacHours.value) || 0, m = parseInt(el.vacMinutes.value) || 0;
+    return Math.min(h * 60 + m, settings.dailyHours * 60 + settings.dailyMinutes);
+}
+
+// ─── Excel Export ───
 function getAllWeeks() {
-    const records = loadRecords();
-    const dateKeys = Object.keys(records).sort();
-    
-    if (dateKeys.length === 0) return [];
-    
+    const records = loadRecords(), dateKeys = Object.keys(records).sort();
+    if (!dateKeys.length) return [];
     const weeks = new Map();
-    
-    dateKeys.forEach(dateKey => {
-        const date = new Date(dateKey);
-        const weekStart = getWeekStart(date);
-        const weekKey = getDateKey(weekStart);
-        
-        if (!weeks.has(weekKey)) {
-            weeks.set(weekKey, {
-                weekStart,
-                days: []
-            });
-        }
-        
-        weeks.get(weekKey).days.push({
-            date: new Date(dateKey),
-            dateKey,
-            records: records[dateKey]
-        });
+    dateKeys.forEach(dk => {
+        const d = new Date(dk), ws = getWeekStart(d), wk = getDateKey(ws);
+        if (!weeks.has(wk)) weeks.set(wk, { weekStart: ws, days: [] });
+        weeks.get(wk).days.push({ date: new Date(dk), dateKey: dk, records: records[dk] });
     });
-    
     return Array.from(weeks.values()).sort((a, b) => a.weekStart - b.weekStart);
 }
+function escCSV(v) { if (v == null) return ''; const s = String(v); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+function weekNum(d) { const dd = new Date(d); dd.setHours(0,0,0,0); dd.setDate(dd.getDate()+4-(dd.getDay()||7)); const ys = new Date(dd.getFullYear(),0,1); return `Semana ${Math.ceil((((dd-ys)/864e5)+1)/7)}`; }
+function shortDate(d) { return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
+function fullDay(d) { return d.toLocaleDateString('es-ES', { weekday: 'long' }); }
 
-function escapeCSV(value) {
-    if (value === null || value === undefined) return '';
-    const str = String(value);
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return '"' + str.replace(/"/g, '""') + '"';
-    }
-    return str;
-}
-
-function generateExcelContent() {
-    const records = loadRecords();
-    const allWeeks = getAllWeeks();
-    const dailyTarget = settings.dailyHours * 60 + settings.dailyMinutes;
-    const weeklyTarget = settings.weeklyHours * 60;
-    
-    let csv = '\uFEFF'; // BOM for Excel UTF-8
-    
-    // Header info
+function generateCSV() {
+    const records = loadRecords(), weeks = getAllWeeks();
+    const dTarget = settings.dailyHours * 60 + settings.dailyMinutes, wTarget = settings.weeklyHours * 60;
+    let csv = '\uFEFF';
     csv += 'REPORTE DE HORAS TRABAJADAS - TicTic Job\n';
     csv += `Generado el:,${formatDate(new Date())}\n`;
-    csv += `Objetivo diario:,${settings.dailyHours}h ${settings.dailyMinutes}min\n`;
-    csv += `Objetivo semanal:,${settings.weeklyHours}h\n`;
-    csv += '\n';
-    
-    // Summary section
-    csv += 'RESUMEN POR SEMANA\n';
-    csv += 'Semana,Fecha Inicio,Fecha Fin,Horas Trabajadas,Objetivo,Horas Extra,Estado\n';
-    
-    let totalWorkedAll = 0;
-    let totalExtraAll = 0;
-    
-    allWeeks.forEach(week => {
-        const weekDays = getWeekDays(week.weekStart);
-        let weekWorked = 0;
-        
-        weekDays.forEach(day => {
-            const dateKey = getDateKey(day);
-            const dayRecords = getDayRecords(dateKey);
-            weekWorked += calculateDayWorked(dayRecords);
-        });
-        
-        const weekExtra = weekWorked - weeklyTarget;
-        totalWorkedAll += weekWorked;
-        totalExtraAll += weekExtra;
-        
-        const { hours: wH, minutes: wM } = minutesToTime(weekWorked);
-        const { hours: eH, minutes: eM } = minutesToTime(Math.abs(weekExtra));
-        const extraSign = weekExtra >= 0 ? '+' : '-';
-        const status = weekExtra > 0 ? 'Horas extra' : weekExtra < 0 ? 'Faltan horas' : 'Completo';
-        
-        const weekEnd = new Date(week.weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        
-        csv += `${escapeCSV(getWeekNumber(week.weekStart))},`;
-        csv += `${formatShortDate(week.weekStart)},`;
-        csv += `${formatShortDate(weekEnd)},`;
-        csv += `${wH}h ${wM}min,`;
-        csv += `${settings.weeklyHours}h,`;
-        csv += `${extraSign}${eH}h ${eM}min,`;
-        csv += `${status}\n`;
+    csv += `Objetivo diario:,${settings.dailyHours}h ${settings.dailyMinutes}min\nObjetivo semanal:,${settings.weeklyHours}h\n\n`;
+    csv += 'RESUMEN POR SEMANA\nSemana,Fecha Inicio,Fecha Fin,Horas Trabajadas,Objetivo,Horas Extra,Estado\n';
+    let totW = 0, totE = 0;
+    weeks.forEach(wk => {
+        const wDays = getWeekDays(wk.weekStart); let wW = 0;
+        wDays.forEach(d => { wW += calcDay(getDayRecords(getDateKey(d))); });
+        const wE = wW - wTarget; totW += wW; totE += wE;
+        const { hours: wH, minutes: wM } = m2t(wW), { hours: eH, minutes: eM } = m2t(Math.abs(wE));
+        const wEnd = new Date(wk.weekStart); wEnd.setDate(wEnd.getDate() + 6);
+        csv += `${escCSV(weekNum(wk.weekStart))},${shortDate(wk.weekStart)},${shortDate(wEnd)},${wH}h ${wM}min,${settings.weeklyHours}h,${wE>=0?'+':'-'}${eH}h ${eM}min,${wE>0?'Horas extra':wE<0?'Faltan horas':'Completo'}\n`;
     });
-    
-    // Totals
-    const { hours: totalH, minutes: totalM } = minutesToTime(totalWorkedAll);
-    const { hours: extraTotalH, minutes: extraTotalM } = minutesToTime(Math.abs(totalExtraAll));
-    csv += '\n';
-    csv += `TOTAL GENERAL,,,"${totalH}h ${totalM}min",,"${totalExtraAll >= 0 ? '+' : '-'}${extraTotalH}h ${extraTotalM}min"\n`;
-    csv += '\n\n';
-    
-    // Detailed records section
-    csv += 'DETALLE DIARIO\n';
-    csv += 'Fecha,Día,Tipo,Entradas,Salidas,Horas Trabajadas,Objetivo,Diferencia\n';
-    
-    const sortedDates = Object.keys(records).sort();
-    
-    sortedDates.forEach(dateKey => {
-        const date = new Date(dateKey);
-        const dayRecords = records[dateKey];
-        const worked = calculateDayWorked(dayRecords);
-        const diff = worked - dailyTarget;
-        const { hours: wH, minutes: wM } = minutesToTime(worked);
-        const { hours: dH, minutes: dM } = minutesToTime(Math.abs(diff));
-        const diffSign = diff >= 0 ? '+' : '-';
-        
-        let tipo = 'Normal';
-        let entradas = '';
-        let salidas = '';
-        
-        if (dayRecords.specialDay) {
-            tipo = dayRecords.specialDay === 'vacation' ? 'Vacación' : 'Feriado';
-            entradas = '-';
-            salidas = '-';
-        } else if (dayRecords.entries && dayRecords.entries.length > 0) {
-            const sorted = [...dayRecords.entries].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
-            entradas = sorted.filter(e => e.type === 'entry').map(e => e.time).join(' / ');
-            salidas = sorted.filter(e => e.type === 'exit').map(e => e.time).join(' / ');
+    const { hours: tH, minutes: tM } = m2t(totW), { hours: teH, minutes: teM } = m2t(Math.abs(totE));
+    csv += `\nTOTAL GENERAL,,,"${tH}h ${tM}min",,"${totE>=0?'+':'-'}${teH}h ${teM}min"\n\n`;
+    csv += 'DETALLE DIARIO\nFecha,D\u00eda,Tipo,Entradas,Salidas,Horas Presenciales,Horas Vac/Fer,Total D\u00eda,Objetivo,Diferencia\n';
+    Object.keys(records).sort().forEach(dk => {
+        const d = new Date(dk), dr = records[dk];
+        const workedMin = calcWorkedEntries(dr.entries);
+        let vacFerMin = 0;
+        if (dr.specialDay === 'holiday') vacFerMin = dTarget;
+        else if (dr.specialDay === 'vacation' && dr.vacationMinutes !== undefined) vacFerMin = dr.vacationMinutes;
+        const totalMin = workedMin + vacFerMin;
+        const diff = totalMin - dTarget;
+        const { hours: wH, minutes: wM } = m2t(workedMin);
+        const { hours: vH, minutes: vM } = m2t(vacFerMin);
+        const { hours: tH2, minutes: tM2 } = m2t(totalMin);
+        const { hours: dH, minutes: dM } = m2t(Math.abs(diff));
+        let tipo = 'Normal', ent = '', sal = '';
+        const hasEntries = dr.entries && dr.entries.length > 0;
+        if (dr.specialDay && hasEntries) {
+            tipo = `Normal + ${dr.specialDay === 'vacation' ? 'Vacaci\u00f3n' : 'Feriado'}`;
+        } else if (dr.specialDay) {
+            tipo = dr.specialDay === 'vacation' ? 'Vacaci\u00f3n' : 'Feriado';
         }
-        
-        csv += `${formatShortDate(date)},`;
-        csv += `${escapeCSV(getDayNameFull(date))},`;
-        csv += `${tipo},`;
-        csv += `${escapeCSV(entradas || '-')},`;
-        csv += `${escapeCSV(salidas || '-')},`;
-        csv += `${wH}h ${wM}min,`;
-        csv += `${settings.dailyHours}h ${settings.dailyMinutes}min,`;
-        csv += `${diffSign}${dH}h ${dM}min\n`;
+        if (hasEntries) {
+            const s = [...dr.entries].sort((a,b) => t2m(a.time)-t2m(b.time));
+            ent = s.filter(e=>e.type==='entry').map(e=>e.time).join(' / ');
+            sal = s.filter(e=>e.type==='exit').map(e=>e.time).join(' / ');
+        }
+        const workedStr = workedMin > 0 ? `${wH}h ${wM}min` : '-';
+        const vacStr = vacFerMin > 0 ? `${vH}h ${vM}min` : '-';
+        csv += `${shortDate(d)},${escCSV(fullDay(d))},${tipo},${escCSV(ent||'-')},${escCSV(sal||'-')},${workedStr},${vacStr},${tH2}h ${tM2}min,${settings.dailyHours}h ${settings.dailyMinutes}min,${diff>=0?'+':'-'}${dH}h ${dM}min\n`;
     });
-    
     return csv;
-}
-
-function getWeekNumber(date) {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-    const yearStart = new Date(d.getFullYear(), 0, 1);
-    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    return `Semana ${weekNo}`;
-}
-
-function formatShortDate(date) {
-    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-}
-
-function getDayNameFull(date) {
-    return date.toLocaleDateString('es-ES', { weekday: 'long' });
 }
 
 function exportToExcel() {
     const records = loadRecords();
-    
-    if (Object.keys(records).length === 0) {
-        alert('No hay registros para exportar');
-        return;
-    }
-    
-    const csvContent = generateExcelContent();
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    if (!Object.keys(records).length) { showToast('No hay registros', 'exit'); return; }
+    const blob = new Blob([generateCSV()], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
-    const fileName = `TicTic_Job_${formatShortDate(new Date()).replace(/\//g, '-')}.csv`;
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', fileName);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    closeSettingsModal();
+    const a = document.createElement('a');
+    a.href = url; a.download = `TicTic_Job_${shortDate(new Date()).replace(/\//g,'-')}.csv`;
+    a.style.display = 'none'; document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    closeModal(el.settingsModal);
 }
 
-// Event Listeners
-elements.entryBtn.addEventListener('click', () => openTimeModal('entry'));
-elements.exitBtn.addEventListener('click', () => openTimeModal('exit'));
-elements.specialDayBtn.addEventListener('click', openSpecialDayModal);
+// ─── Event Listeners ───
 
-elements.cancelTime.addEventListener('click', closeTimeModal);
-elements.confirmTime.addEventListener('click', () => {
-    const time = elements.timePicker.value;
-    if (time && currentAction) {
-        addRecord(currentAction, time);
-        closeTimeModal();
-    }
-});
+// Main actions — instant register
+el.entryBtn.addEventListener('click', () => quickRegister('entry'));
+el.exitBtn.addEventListener('click', () => quickRegister('exit'));
 
-elements.vacationBtn.addEventListener('click', () => {
-    closeSpecialDayModal();
-    openVacationHoursModal();
+// Special day — subtle toggle in bottom bar
+el.specialDayToggle.addEventListener('click', () => {
+    el.specialDayToggle.classList.add('hidden');
+    el.specialDayOptions.classList.remove('hidden');
 });
-elements.holidayBtn.addEventListener('click', () => setSpecialDay('holiday'));
-elements.cancelSpecial.addEventListener('click', closeSpecialDayModal);
+el.vacationBtn.addEventListener('click', () => openVacationHoursModal());
+el.holidayBtn.addEventListener('click', () => setSpecialDay('holiday'));
 
-elements.cancelVacation.addEventListener('click', () => {
-    closeVacationHoursModal();
-    openSpecialDayModal();
-});
-elements.confirmVacation.addEventListener('click', () => {
-    const totalMin = getSelectedVacationMinutes();
-    setSpecialDay('vacation', totalMin);
-});
+// Vacation hours
+el.cancelVacation.addEventListener('click', () => closeModal(el.vacationHoursModal));
+el.confirmVacation.addEventListener('click', () => setSpecialDay('vacation', getVacMinutes()));
 
-// Vacation preset buttons
-elements.vacationHoursModal.querySelectorAll('.preset-btn').forEach(btn => {
+el.vacationHoursModal.querySelectorAll('.preset-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        elements.vacationHoursModal.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        el.vacationHoursModal.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-
         const mins = parseInt(btn.dataset.minutes);
-        if (mins === 0) {
-            // Personalizar
-            elements.vacationCustom.classList.remove('hidden');
-            const h = parseInt(elements.vacHours.value) || 0;
-            const m = parseInt(elements.vacMinutes.value) || 0;
-            updateVacationPreview(h * 60 + m);
-        } else {
-            elements.vacationCustom.classList.add('hidden');
-            updateVacationPreview(mins);
-        }
+        if (mins === 0) { el.vacationCustom.classList.remove('hidden'); updateVacPreview((parseInt(el.vacHours.value)||0)*60+(parseInt(el.vacMinutes.value)||0)); }
+        else { el.vacationCustom.classList.add('hidden'); updateVacPreview(mins); }
     });
 });
 
-// Custom vacation hours inputs
-elements.vacHours.addEventListener('input', () => {
-    const maxMinutes = settings.dailyHours * 60 + settings.dailyMinutes;
-    let h = parseInt(elements.vacHours.value) || 0;
-    let m = parseInt(elements.vacMinutes.value) || 0;
-    if (h * 60 + m > maxMinutes) {
-        h = settings.dailyHours;
-        m = settings.dailyMinutes;
-        elements.vacHours.value = h;
-        elements.vacMinutes.value = m;
-    }
-    updateVacationPreview(h * 60 + m);
-});
-
-elements.vacMinutes.addEventListener('input', () => {
-    const maxMinutes = settings.dailyHours * 60 + settings.dailyMinutes;
-    let h = parseInt(elements.vacHours.value) || 0;
-    let m = parseInt(elements.vacMinutes.value) || 0;
-    if (h * 60 + m > maxMinutes) {
-        h = settings.dailyHours;
-        m = settings.dailyMinutes;
-        elements.vacHours.value = h;
-        elements.vacMinutes.value = m;
-    }
-    updateVacationPreview(h * 60 + m);
-});
-
-elements.settingsBtn.addEventListener('click', openSettingsModal);
-elements.cancelSettings.addEventListener('click', closeSettingsModal);
-elements.saveSettings.addEventListener('click', saveSettingsFromModal);
-elements.exportExcel.addEventListener('click', exportToExcel);
-
-// Close modals on backdrop click
-[elements.timeModal, elements.specialDayModal, elements.settingsModal, elements.vacationHoursModal].forEach(modal => {
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.classList.remove('active');
-        }
+[el.vacHours, el.vacMinutes].forEach(input => {
+    input.addEventListener('input', () => {
+        const max = settings.dailyHours * 60 + settings.dailyMinutes;
+        let h = parseInt(el.vacHours.value) || 0, m = parseInt(el.vacMinutes.value) || 0;
+        if (h * 60 + m > max) { h = settings.dailyHours; m = settings.dailyMinutes; el.vacHours.value = h; el.vacMinutes.value = m; }
+        updateVacPreview(h * 60 + m);
     });
 });
 
-// Make functions available globally for onclick handlers
+// Edit time modal
+el.cancelTime.addEventListener('click', () => { closeModal(el.timeModal); editingRecordIndex = null; });
+el.confirmTime.addEventListener('click', saveEditedRecord);
+
+// Settings
+el.settingsBtn.addEventListener('click', () => {
+    el.dailyHours.value = settings.dailyHours; el.dailyMinutes.value = settings.dailyMinutes;
+    el.weeklyHours.value = settings.weeklyHours; el.settingsModal.classList.add('active');
+});
+el.cancelSettings.addEventListener('click', () => closeModal(el.settingsModal));
+el.saveSettings.addEventListener('click', saveSettingsFromModal);
+el.exportExcel.addEventListener('click', exportToExcel);
+
+// Close modals on backdrop
+[el.timeModal, el.settingsModal, el.vacationHoursModal].forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) closeModal(m); });
+});
+
+// Globals for inline onclick
 window.deleteRecord = deleteRecord;
 window.removeSpecialDay = removeSpecialDay;
+window.editRecord = editRecord;
 
-// Initialize
+// ─── Init ───
+startClock();
 refreshUI();
 
-// Register Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker registered'))
-            .catch(err => console.log('Service Worker registration failed:', err));
+        navigator.serviceWorker.register('sw.js').catch(() => {});
     });
 }
