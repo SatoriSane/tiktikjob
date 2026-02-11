@@ -558,6 +558,61 @@ section h2 {
     border-radius: 2px;
 }
 
+/* Vacation Hours Picker */
+.vacation-hours-picker {
+    margin: 20px 0;
+}
+
+.vacation-presets {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.preset-btn {
+    flex: 1;
+    padding: 12px 8px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.preset-btn.active {
+    border-color: var(--accent-entry);
+    color: var(--accent-entry);
+    background: rgba(0, 217, 165, 0.1);
+}
+
+.preset-btn:active {
+    transform: scale(0.97);
+}
+
+.vacation-custom {
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+}
+
+.vacation-custom.hidden {
+    display: none;
+}
+
+.time-setting.centered {
+    justify-content: center;
+}
+
+.vacation-preview {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: var(--accent-entry);
+    padding: 12px 0;
+}
+
 /* Export Button */
 .export-section {
     margin-top: 8px;

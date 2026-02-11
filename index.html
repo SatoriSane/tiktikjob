@@ -134,6 +134,34 @@
             </div>
         </div>
 
+        <!-- Vacation Hours Modal -->
+        <div id="vacationHoursModal" class="modal">
+            <div class="modal-content">
+                <h3>Horas de Vacación</h3>
+                <p class="modal-subtitle">¿Cuántas horas de vacación?</p>
+                <div class="vacation-hours-picker">
+                    <div class="vacation-presets">
+                        <button class="preset-btn active" data-minutes="450">Día completo</button>
+                        <button class="preset-btn" data-minutes="225">Medio día</button>
+                        <button class="preset-btn" data-minutes="0">Personalizar</button>
+                    </div>
+                    <div id="vacationCustom" class="vacation-custom hidden">
+                        <div class="time-setting centered">
+                            <input type="number" id="vacHours" min="0" max="7" value="7">
+                            <span>hr</span>
+                            <input type="number" id="vacMinutes" min="0" max="59" value="30">
+                            <span>min</span>
+                        </div>
+                    </div>
+                    <div id="vacationPreview" class="vacation-preview">7h 30min</div>
+                </div>
+                <div class="modal-actions">
+                    <button id="cancelVacation" class="btn-secondary">Volver</button>
+                    <button id="confirmVacation" class="btn-primary">Confirmar</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Settings Modal -->
         <div id="settingsModal" class="modal">
             <div class="modal-content">

@@ -49,7 +49,16 @@ const elements = {
     weeklyHours: document.getElementById('weeklyHours'),
     cancelSettings: document.getElementById('cancelSettings'),
     saveSettings: document.getElementById('saveSettings'),
-    exportExcel: document.getElementById('exportExcel')
+    exportExcel: document.getElementById('exportExcel'),
+
+    // Vacation Hours Modal
+    vacationHoursModal: document.getElementById('vacationHoursModal'),
+    vacationCustom: document.getElementById('vacationCustom'),
+    vacHours: document.getElementById('vacHours'),
+    vacMinutes: document.getElementById('vacMinutes'),
+    vacationPreview: document.getElementById('vacationPreview'),
+    cancelVacation: document.getElementById('cancelVacation'),
+    confirmVacation: document.getElementById('confirmVacation')
 };
 
 // Utility Functions
@@ -138,6 +147,9 @@ function saveDayRecords(dateKey, dayRecords) {
 // Calculate worked time for a day
 function calculateDayWorked(dayRecords) {
     if (dayRecords.specialDay) {
+        if (dayRecords.specialDay === 'vacation' && dayRecords.vacationMinutes !== undefined) {
+            return dayRecords.vacationMinutes;
+        }
         return settings.dailyHours * 60 + settings.dailyMinutes;
     }
     
@@ -230,7 +242,7 @@ function renderTodayRecords() {
                 </div>
                 <div class="record-info">
                     <div class="record-type">${dayRecords.specialDay === 'vacation' ? 'Vacación' : 'Feriado'}</div>
-                    <div class="record-time">${formatTime(settings.dailyHours, settings.dailyMinutes)} acreditadas</div>
+                    <div class="record-time">${(() => { const m = calculateDayWorked(dayRecords); const t = minutesToTime(m); return formatTime(t.hours, t.minutes); })()} acreditadas</div>
                 </div>
                 <button class="record-delete" onclick="removeSpecialDay()">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -372,6 +384,47 @@ function closeSpecialDayModal() {
     elements.specialDayModal.classList.remove('active');
 }
 
+function openVacationHoursModal() {
+    const maxMinutes = settings.dailyHours * 60 + settings.dailyMinutes;
+    const halfMinutes = Math.round(maxMinutes / 2);
+
+    // Update preset buttons with current settings
+    const presets = elements.vacationHoursModal.querySelectorAll('.preset-btn');
+    presets[0].dataset.minutes = maxMinutes;
+    presets[1].dataset.minutes = halfMinutes;
+
+    // Reset to full day
+    presets.forEach(b => b.classList.remove('active'));
+    presets[0].classList.add('active');
+    elements.vacationCustom.classList.add('hidden');
+    elements.vacHours.value = settings.dailyHours;
+    elements.vacMinutes.value = settings.dailyMinutes;
+    updateVacationPreview(maxMinutes);
+
+    elements.vacationHoursModal.classList.add('active');
+}
+
+function closeVacationHoursModal() {
+    elements.vacationHoursModal.classList.remove('active');
+}
+
+function updateVacationPreview(totalMinutes) {
+    const { hours, minutes } = minutesToTime(totalMinutes);
+    elements.vacationPreview.textContent = formatTime(hours, minutes);
+}
+
+function getSelectedVacationMinutes() {
+    const activePreset = elements.vacationHoursModal.querySelector('.preset-btn.active');
+    if (activePreset && activePreset.dataset.minutes !== '0') {
+        return parseInt(activePreset.dataset.minutes);
+    }
+    // Custom
+    const h = parseInt(elements.vacHours.value) || 0;
+    const m = parseInt(elements.vacMinutes.value) || 0;
+    const maxMinutes = settings.dailyHours * 60 + settings.dailyMinutes;
+    return Math.min(h * 60 + m, maxMinutes);
+}
+
 function openSettingsModal() {
     elements.dailyHours.value = settings.dailyHours;
     elements.dailyMinutes.value = settings.dailyMinutes;
@@ -418,11 +471,15 @@ function deleteRecord(index) {
     }
 }
 
-function setSpecialDay(type) {
+function setSpecialDay(type, vacationMinutes) {
     const dateKey = getDateKey();
     const dayRecords = { entries: [], specialDay: type };
+    if (type === 'vacation' && vacationMinutes !== undefined) {
+        dayRecords.vacationMinutes = vacationMinutes;
+    }
     saveDayRecords(dateKey, dayRecords);
     closeSpecialDayModal();
+    closeVacationHoursModal();
     refreshUI();
 }
 
@@ -641,9 +698,68 @@ elements.confirmTime.addEventListener('click', () => {
     }
 });
 
-elements.vacationBtn.addEventListener('click', () => setSpecialDay('vacation'));
+elements.vacationBtn.addEventListener('click', () => {
+    closeSpecialDayModal();
+    openVacationHoursModal();
+});
 elements.holidayBtn.addEventListener('click', () => setSpecialDay('holiday'));
 elements.cancelSpecial.addEventListener('click', closeSpecialDayModal);
+
+elements.cancelVacation.addEventListener('click', () => {
+    closeVacationHoursModal();
+    openSpecialDayModal();
+});
+elements.confirmVacation.addEventListener('click', () => {
+    const totalMin = getSelectedVacationMinutes();
+    setSpecialDay('vacation', totalMin);
+});
+
+// Vacation preset buttons
+elements.vacationHoursModal.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        elements.vacationHoursModal.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const mins = parseInt(btn.dataset.minutes);
+        if (mins === 0) {
+            // Personalizar
+            elements.vacationCustom.classList.remove('hidden');
+            const h = parseInt(elements.vacHours.value) || 0;
+            const m = parseInt(elements.vacMinutes.value) || 0;
+            updateVacationPreview(h * 60 + m);
+        } else {
+            elements.vacationCustom.classList.add('hidden');
+            updateVacationPreview(mins);
+        }
+    });
+});
+
+// Custom vacation hours inputs
+elements.vacHours.addEventListener('input', () => {
+    const maxMinutes = settings.dailyHours * 60 + settings.dailyMinutes;
+    let h = parseInt(elements.vacHours.value) || 0;
+    let m = parseInt(elements.vacMinutes.value) || 0;
+    if (h * 60 + m > maxMinutes) {
+        h = settings.dailyHours;
+        m = settings.dailyMinutes;
+        elements.vacHours.value = h;
+        elements.vacMinutes.value = m;
+    }
+    updateVacationPreview(h * 60 + m);
+});
+
+elements.vacMinutes.addEventListener('input', () => {
+    const maxMinutes = settings.dailyHours * 60 + settings.dailyMinutes;
+    let h = parseInt(elements.vacHours.value) || 0;
+    let m = parseInt(elements.vacMinutes.value) || 0;
+    if (h * 60 + m > maxMinutes) {
+        h = settings.dailyHours;
+        m = settings.dailyMinutes;
+        elements.vacHours.value = h;
+        elements.vacMinutes.value = m;
+    }
+    updateVacationPreview(h * 60 + m);
+});
 
 elements.settingsBtn.addEventListener('click', openSettingsModal);
 elements.cancelSettings.addEventListener('click', closeSettingsModal);
@@ -651,7 +767,7 @@ elements.saveSettings.addEventListener('click', saveSettingsFromModal);
 elements.exportExcel.addEventListener('click', exportToExcel);
 
 // Close modals on backdrop click
-[elements.timeModal, elements.specialDayModal, elements.settingsModal].forEach(modal => {
+[elements.timeModal, elements.specialDayModal, elements.settingsModal, elements.vacationHoursModal].forEach(modal => {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.classList.remove('active');
