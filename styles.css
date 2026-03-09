@@ -1,31 +1,49 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+/* ─────────────────────────────────────────────────────────────────────────────
+   TicTic Job — Styles
+   Sections:
+     1. Reset & Variables
+     2. Base
+     3. Layout (app shell, header, main, bottom bar)
+     4. Clock Hero
+     5. Edit Mode
+     6. Week Navigation
+     7. Today Section (records, day-type picker)
+     8. Week Progress Card
+     9. Weekly Table
+    10. Toast
+    11. Modals (shared, time picker, vacation picker, settings)
+    12. Animations
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── 1. Reset & Variables ──────────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-    --bg-primary: #0f0f1a;
-    --bg-secondary: #1a1a2e;
-    --bg-card: #16213e;
-    --accent-entry: #00d9a5;
-    --accent-exit: #ff6b6b;
-    --accent-special: #ffd93d;
-    --text-primary: #ffffff;
-    --text-secondary: #a0a0b0;
-    --text-muted: #6c6c7c;
-    --border-color: #2a2a4a;
-    --radius: 16px;
-    --radius-sm: 12px;
-    --bottom-bar-h: 76px;
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    /* Colors */
+    --bg-primary:    #0f0f1a;
+    --bg-secondary:  #1a1a2e;
+    --bg-card:       #16213e;
+    --accent-entry:  #00d9a5;
+    --accent-exit:   #ff6b6b;
+    --accent-special:#ffd93d;
+    --text-primary:  #ffffff;
+    --text-secondary:#a0a0b0;
+    --text-muted:    #6c6c7c;
+    --border-color:  #2a2a4a;
+    /* Geometry */
+    --radius:        16px;
+    --radius-sm:     12px;
+    /* Layout */
+    --bottom-bar-h:  76px;
+    --safe-bottom:   env(safe-area-inset-bottom, 0px);
+    --safe-top:      env(safe-area-inset-top, 0px);
 }
 
+/* ── 2. Base ──────────────────────────────────────────────────────────────── */
 html, body {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
-    min-height: 100vh;
     min-height: 100dvh;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
@@ -34,191 +52,24 @@ html, body {
     overscroll-behavior: none;
 }
 
+::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ── 3. Layout ────────────────────────────────────────────────────────────── */
 #app {
     max-width: 480px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
     min-height: 100dvh;
 }
 
-/* ─── Edit Mode Banner ─── */
-.edit-banner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 20px;
-    background: rgba(255, 170, 50, 0.12);
-    border-bottom: 1px solid rgba(255, 170, 50, 0.25);
-    max-width: 480px;
-    margin: 0 auto;
-    width: 100%;
-}
-
-.edit-banner.hidden {
-    display: none;
-}
-
-.edit-banner-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.82rem;
-    color: #ffaa32;
-}
-
-.edit-banner-icon {
-    display: flex;
-    color: #ffaa32;
-}
-
-.edit-banner-close {
-    background: none;
-    border: 1px solid rgba(255, 170, 50, 0.35);
-    color: #ffaa32;
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 5px 12px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.edit-banner-close:active {
-    background: rgba(255, 170, 50, 0.15);
-}
-
-/* ─── Edit Mode Color Shift ─── */
-body.edit-mode {
-    --accent-entry: #ffaa32;
-}
-
-body.edit-mode .header h1 {
-    background: linear-gradient(135deg, #ffaa32, #ff8800);
-    -webkit-background-clip: text;
-    background-clip: text;
-}
-
-body.edit-mode .live-clock {
-    color: #ffaa32;
-    font-size: 2rem;
-    font-weight: 400;
-}
-
-body.edit-mode .clock-hint {
-    color: #ffaa32;
-    opacity: 0.7;
-}
-
-body.edit-mode .action-btn.entry {
-    background: #ffaa32;
-}
-
-body.edit-mode .action-btn.suggested {
-    box-shadow: 0 0 20px rgba(255, 170, 50, 0.3);
-}
-
-body.edit-mode .today-badge {
-    color: #ffaa32;
-    background: rgba(255, 170, 50, 0.1);
-}
-
-/* ─── Past Week View ─── */
-/* Subtle visual cue that you're browsing historical data */
-body.past-week-view .week-nav-label {
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-body.past-week-view .week-progress-card {
-    border: 1px solid rgba(160, 160, 176, 0.08);
-}
-
-body.past-week-view .weekly-table-container {
-    border: 1px solid rgba(160, 160, 176, 0.08);
-    border-radius: var(--radius-sm);
-}
-
-/* ─── Week Navigation Controls ─── */
-.week-nav-controls {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-}
-
-.week-nav-btn {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    padding: 0;
-    flex-shrink: 0;
-}
-
-.week-nav-btn:active:not(:disabled) {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    transform: scale(0.88);
-    border-color: var(--text-muted);
-}
-
-.week-nav-btn:disabled,
-.week-nav-btn.nav-btn-disabled {
-    opacity: 0.22;
-    cursor: default;
-    pointer-events: none;
-}
-
-.week-nav-label {
-    font-size: 0.72rem;
-    color: var(--text-muted);
-    min-width: 66px;
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.2px;
-    padding: 0 2px;
-    transition: color 0.2s;
-}
-
-/* ─── Week Swipe Area ─── */
-.week-swipe-area {
-    /* Touch target for swipe gestures */
-    touch-action: pan-y; /* allow vertical scroll, intercept horizontal */
-}
-
-.week-swipe-area.slide-left {
-    animation: slideInFromRight 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.week-swipe-area.slide-right {
-    animation: slideInFromLeft 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-@keyframes slideInFromRight {
-    from { opacity: 0.4; transform: translateX(18px); }
-    to   { opacity: 1;   transform: translateX(0); }
-}
-
-@keyframes slideInFromLeft {
-    from { opacity: 0.4; transform: translateX(-18px); }
-    to   { opacity: 1;   transform: translateX(0); }
-}
-
-/* ─── Header ─── */
+/* Header */
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px;
-    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    padding-top: calc(12px + var(--safe-top));
     position: sticky;
     top: 0;
     z-index: 10;
@@ -234,11 +85,6 @@ body.past-week-view .weekly-table-container {
     background-clip: text;
 }
 
-.header-actions {
-    display: flex;
-    gap: 6px;
-}
-
 .icon-btn {
     background: transparent;
     border: none;
@@ -252,14 +98,13 @@ body.past-week-view .weekly-table-container {
     cursor: pointer;
     transition: all 0.15s ease;
 }
-
 .icon-btn:active {
     transform: scale(0.9);
     color: var(--text-primary);
     background: var(--bg-secondary);
 }
 
-/* ─── Main Content ─── */
+/* Main scrollable area */
 .main-content {
     flex: 1;
     overflow-y: auto;
@@ -267,40 +112,7 @@ body.past-week-view .weekly-table-container {
     padding-bottom: calc(var(--bottom-bar-h) + var(--safe-bottom) + 16px);
 }
 
-/* ─── Clock Hero ─── */
-.clock-hero {
-    text-align: center;
-    padding: 16px 0 24px;
-}
-
-.date-display {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    text-transform: capitalize;
-    margin-bottom: 4px;
-}
-
-.live-clock {
-    font-size: 4rem;
-    font-weight: 200;
-    letter-spacing: -2px;
-    color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
-}
-
-.clock-hint {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-top: 8px;
-    transition: all 0.3s ease;
-}
-
-.clock-hint.success {
-    color: var(--accent-entry);
-}
-
-/* ─── Bottom Bar ─── */
+/* Bottom action bar */
 .bottom-bar {
     position: fixed;
     bottom: 0;
@@ -329,25 +141,21 @@ body.past-week-view .weekly-table-container {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
-    position: relative;
-    overflow: hidden;
 }
+.action-btn:active { transform: scale(0.96); }
 
 .action-btn.entry {
     background: var(--accent-entry);
     color: #0f0f1a;
 }
-
 .action-btn.exit {
     background: var(--bg-secondary);
     color: var(--accent-exit);
     border: 2px solid rgba(255, 107, 107, 0.3);
 }
-
 .action-btn.suggested {
     box-shadow: 0 0 20px rgba(0, 217, 165, 0.3);
 }
-
 .action-btn.exit.suggested {
     background: var(--accent-exit);
     color: #fff;
@@ -355,27 +163,138 @@ body.past-week-view .weekly-table-container {
     box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
 }
 
-.action-btn:active {
-    transform: scale(0.96);
+/* ── 4. Clock Hero ────────────────────────────────────────────────────────── */
+.clock-hero {
+    text-align: center;
+    padding: 16px 0 24px;
 }
 
-.action-btn .ripple {
-    position: absolute;
+.date-display {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    text-transform: capitalize;
+    margin-bottom: 4px;
+}
+
+.live-clock {
+    font-size: 4rem;
+    font-weight: 200;
+    letter-spacing: -2px;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.clock-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+
+/* ── 5. Edit Mode ─────────────────────────────────────────────────────────── */
+.edit-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: rgba(255, 170, 50, 0.12);
+    border-bottom: 1px solid rgba(255, 170, 50, 0.25);
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+}
+.edit-banner.hidden { display: none; }
+
+.edit-banner-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: #ffaa32;
+}
+.edit-banner-icon { display: flex; color: #ffaa32; }
+
+.edit-banner-close {
+    background: none;
+    border: 1px solid rgba(255, 170, 50, 0.35);
+    color: #ffaa32;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.edit-banner-close:active { background: rgba(255, 170, 50, 0.15); }
+
+/* Edit mode overrides */
+body.edit-mode { --accent-entry: #ffaa32; }
+
+body.edit-mode .header h1 {
+    background: linear-gradient(135deg, #ffaa32, #ff8800);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+body.edit-mode .live-clock   { color: #ffaa32; font-size: 2rem; font-weight: 400; }
+body.edit-mode .clock-hint   { color: #ffaa32; opacity: 0.7; }
+body.edit-mode .action-btn.entry  { background: #ffaa32; }
+body.edit-mode .action-btn.suggested { box-shadow: 0 0 20px rgba(255, 170, 50, 0.3); }
+body.edit-mode .today-badge  { color: #ffaa32; background: rgba(255, 170, 50, 0.1); }
+
+/* ── 6. Week Navigation ───────────────────────────────────────────────────── */
+.week-nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.week-nav-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    animation: ripple 0.5s ease-out;
-    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+    flex-shrink: 0;
+}
+.week-nav-btn:active:not(:disabled) {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transform: scale(0.88);
+    border-color: var(--text-muted);
+}
+.week-nav-btn:disabled,
+.week-nav-btn.nav-btn-disabled { opacity: 0.22; cursor: default; pointer-events: none; }
+
+.week-nav-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    min-width: 66px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.2px;
+    padding: 0 2px;
+    transition: color 0.2s;
 }
 
-@keyframes ripple {
-    from { width: 0; height: 0; opacity: 1; }
-    to { width: 200px; height: 200px; opacity: 0; }
+/* Swipe area — intercepts horizontal gestures, allows vertical scroll */
+.week-swipe-area { touch-action: pan-y; }
+
+/* Past week: subtle border cue */
+body.past-week-view .week-nav-label    { color: var(--text-secondary); font-weight: 500; }
+body.past-week-view .week-progress-card,
+body.past-week-view .weekly-table-container {
+    border: 1px solid rgba(160, 160, 176, 0.08);
 }
 
-/* ─── Sections ─── */
-.today-section, .week-section {
-    margin-bottom: 20px;
-}
+/* ── 7. Today Section ─────────────────────────────────────────────────────── */
+.today-section, .week-section { margin-bottom: 20px; }
 
 .section-header {
     display: flex;
@@ -384,7 +303,8 @@ body.past-week-view .weekly-table-container {
     margin-bottom: 10px;
 }
 
-.today-section h2, .week-section h2 {
+.today-section h2,
+.week-section h2 {
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-muted);
@@ -400,19 +320,55 @@ body.past-week-view .weekly-table-container {
     padding: 3px 10px;
     border-radius: 20px;
 }
+.today-badge:empty { display: none; }
 
-.today-badge:empty {
-    display: none;
-}
-
-/* ─── Records List ─── */
+/* Records list */
 .records-list {
     background: var(--bg-secondary);
     border-radius: var(--radius-sm);
     overflow: hidden;
 }
 
-/* ─── Day Type Picker ─── */
+.record-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.record-item:last-child { border-bottom: none; }
+.record-item:active { background: var(--bg-card); }
+
+.record-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+.record-dot.entry   { background: var(--accent-entry); }
+.record-dot.exit    { background: var(--accent-exit); }
+.record-dot.special { background: var(--accent-special); }
+
+.record-info { flex: 1; min-width: 0; }
+.record-type { font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
+.record-time { font-size: 0.75rem; color: var(--text-secondary); }
+
+.record-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 8px;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: all 0.15s;
+    border-radius: 50%;
+}
+.record-action-btn:active         { opacity: 1; background: rgba(255,255,255,0.05); }
+.record-action-btn.delete:active  { color: var(--accent-exit); }
+
+/* Day-type picker (empty day) */
 .day-type-picker {
     display: flex;
     gap: 10px;
@@ -435,124 +391,26 @@ body.past-week-view .weekly-table-container {
     cursor: pointer;
     transition: all 0.15s ease;
 }
-
-.day-type-card:active {
-    transform: scale(0.97);
-}
-
-.day-type-card.vacation:active {
-    border-color: var(--accent-entry);
-    color: var(--accent-entry);
-}
-
-.day-type-card.holiday:active {
-    border-color: var(--accent-special);
-    color: var(--accent-special);
-}
-
-.day-type-card .card-icon {
-    font-size: 1.1rem;
-    line-height: 1;
-}
+.day-type-card:active                { transform: scale(0.97); }
+.day-type-card.vacation:active       { border-color: var(--accent-entry);   color: var(--accent-entry); }
+.day-type-card.holiday:active        { border-color: var(--accent-special); color: var(--accent-special); }
+.day-type-card .card-icon            { font-size: 1.1rem; line-height: 1; }
 
 .add-vacation-link {
     display: block;
-    text-align: center;
+    width: 100%;
     padding: 10px;
+    background: none;
+    border: none;
+    text-align: center;
     color: var(--text-muted);
     font-size: 0.75rem;
     cursor: pointer;
-    border: none;
-    background: none;
-    width: 100%;
     transition: color 0.15s;
 }
+.add-vacation-link:active { color: var(--text-secondary); }
 
-.add-vacation-link:active {
-    color: var(--text-secondary);
-}
-
-.record-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border-color);
-    cursor: pointer;
-    transition: background 0.15s;
-}
-
-.record-item:last-child {
-    border-bottom: none;
-}
-
-.record-item:active {
-    background: var(--bg-card);
-}
-
-.record-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    margin-right: 12px;
-    flex-shrink: 0;
-}
-
-.record-dot.entry { background: var(--accent-entry); }
-.record-dot.exit { background: var(--accent-exit); }
-.record-dot.special { background: var(--accent-special); }
-
-.record-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.record-type {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.record-time {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-}
-
-.record-actions {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-}
-
-.record-action-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    padding: 8px;
-    cursor: pointer;
-    opacity: 0.5;
-    transition: all 0.15s;
-    border-radius: 50%;
-}
-
-.record-action-btn:active {
-    opacity: 1;
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.record-action-btn.delete:active {
-    color: var(--accent-exit);
-}
-
-.record-item.new-record {
-    animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-    from { opacity: 0; transform: translateX(-20px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-/* ─── Week Progress Card ─── */
+/* ── 8. Week Progress Card ────────────────────────────────────────────────── */
 .week-progress-card {
     background: var(--bg-secondary);
     border-radius: var(--radius-sm);
@@ -567,16 +425,8 @@ body.past-week-view .weekly-table-container {
     align-items: baseline;
     margin-bottom: 14px;
 }
-
-.progress-worked {
-    font-size: 1.6rem;
-    font-weight: 600;
-}
-
-.progress-target {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
+.progress-worked { font-size: 1.6rem; font-weight: 600; }
+.progress-target { font-size: 0.85rem; color: var(--text-muted); }
 
 .progress-bar-track {
     height: 8px;
@@ -585,14 +435,12 @@ body.past-week-view .weekly-table-container {
     overflow: hidden;
     margin-bottom: 14px;
 }
-
 .progress-bar-fill {
     height: 100%;
     border-radius: 4px;
     background: var(--accent-entry);
     transition: width 0.5s ease;
 }
-
 .progress-bar-fill.over {
     background: linear-gradient(90deg, var(--accent-entry), var(--accent-special));
 }
@@ -602,22 +450,13 @@ body.past-week-view .weekly-table-container {
     justify-content: space-between;
     align-items: center;
 }
-
-.progress-extra-label {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-}
-
-.progress-extra-value {
-    font-size: 0.95rem;
-    font-weight: 600;
-}
-
+.progress-extra-label { font-size: 0.85rem; color: var(--text-secondary); }
+.progress-extra-value { font-size: 0.95rem; font-weight: 600; }
 .progress-extra-value.positive { color: var(--accent-entry); }
 .progress-extra-value.negative { color: var(--accent-exit); }
-.progress-extra-value.neutral { color: var(--text-muted); }
+.progress-extra-value.neutral  { color: var(--text-muted); }
 
-/* ─── Weekly Table ─── */
+/* ── 9. Weekly Table ──────────────────────────────────────────────────────── */
 .weekly-table-container {
     background: var(--bg-secondary);
     border-radius: var(--radius-sm);
@@ -631,14 +470,12 @@ body.past-week-view .weekly-table-container {
     border-collapse: collapse;
     font-size: 0.82rem;
 }
-
 .weekly-table th,
 .weekly-table td {
     padding: 11px 12px;
     text-align: center;
     border-bottom: 1px solid var(--border-color);
 }
-
 .weekly-table th {
     color: var(--text-muted);
     font-weight: 500;
@@ -646,49 +483,20 @@ body.past-week-view .weekly-table-container {
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
+.weekly-table tr:last-child td { border-bottom: none; }
+.weekly-table .day-name        { text-align: left; font-weight: 500; }
 
-.weekly-table tr:last-child td {
-    border-bottom: none;
-}
+.weekly-table .tappable-row    { cursor: pointer; transition: background 0.15s; }
+.weekly-table .tappable-row:active { background: rgba(255,255,255,0.04); }
 
-.weekly-table .day-name {
-    text-align: left;
-    font-weight: 500;
-}
+.weekly-table .today-row       { background: rgba(0, 217, 165, 0.06); }
+.weekly-table .today-row .day-name { color: var(--accent-entry); }
 
-.weekly-table .today-row {
-    background: rgba(0, 217, 165, 0.06);
-}
+.weekly-table .editing-row     { background: rgba(255, 170, 50, 0.08); }
+.weekly-table .editing-row .day-name { color: #ffaa32; }
 
-.weekly-table .today-row .day-name {
-    color: var(--accent-entry);
-}
-
-.weekly-table .tappable-row {
-    cursor: pointer;
-    transition: background 0.15s;
-}
-
-.weekly-table .tappable-row:active {
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.weekly-table .editing-row {
-    background: rgba(255, 170, 50, 0.08);
-}
-
-.weekly-table .editing-row .day-name {
-    color: #ffaa32;
-}
-
-.weekly-table .future-row td {
-    opacity: 0.4;
-}
-
-.empty-cell {
-    color: var(--text-muted);
-    opacity: 0.5;
-}
+.weekly-table .future-row td   { opacity: 0.4; }
+.empty-cell                    { color: var(--text-muted); opacity: 0.5; }
 
 .special-badge {
     display: inline-block;
@@ -698,21 +506,13 @@ body.past-week-view .weekly-table-container {
     font-weight: 600;
     letter-spacing: 0.3px;
 }
+.special-badge.vac { background: rgba(0, 217, 165, 0.15); color: var(--accent-entry); }
+.special-badge.fer { background: rgba(255, 217, 61, 0.15); color: var(--accent-special); }
 
-.special-badge.vac {
-    background: rgba(0, 217, 165, 0.15);
-    color: var(--accent-entry);
-}
-
-.special-badge.fer {
-    background: rgba(255, 217, 61, 0.15);
-    color: var(--accent-special);
-}
-
-/* ─── Toast ─── */
+/* ── 10. Toast ────────────────────────────────────────────────────────────── */
 .toast {
     position: fixed;
-    top: calc(20px + env(safe-area-inset-top, 0px));
+    top: calc(20px + var(--safe-top));
     left: 50%;
     transform: translateX(-50%) translateY(-100px);
     background: var(--bg-card);
@@ -728,29 +528,15 @@ body.past-week-view .weekly-table-container {
     border: 1px solid var(--border-color);
     white-space: nowrap;
 }
+.toast.show  { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.toast.entry { border-color: rgba(0, 217, 165, 0.4); }
+.toast.exit  { border-color: rgba(255, 107, 107, 0.4); }
 
-.toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-    pointer-events: auto;
-}
-
-.toast.entry {
-    border-color: rgba(0, 217, 165, 0.4);
-}
-
-.toast.exit {
-    border-color: rgba(255, 107, 107, 0.4);
-}
-
-/* ─── Modals ─── */
+/* ── 11. Modals ───────────────────────────────────────────────────────────── */
 .modal {
     display: none;
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -758,47 +544,42 @@ body.past-week-view .weekly-table-container {
     align-items: flex-end;
     justify-content: center;
 }
-
-.modal.active {
-    display: flex;
-}
+.modal.active { display: flex; }
 
 .modal-content {
     background: var(--bg-secondary);
     width: 100%;
     max-width: 480px;
-    padding: 24px 20px;
-    padding-bottom: calc(24px + var(--safe-bottom));
+    padding: 24px 20px calc(24px + var(--safe-bottom));
     border-radius: var(--radius) var(--radius) 0 0;
     animation: sheetUp 0.25s cubic-bezier(0.32, 0.72, 0, 1);
 }
+.modal-content h3   { font-size: 1.15rem; font-weight: 600; margin-bottom: 6px; text-align: center; }
+.modal-subtitle     { color: var(--text-secondary); font-size: 0.85rem; text-align: center; margin-bottom: 20px; }
 
-@keyframes sheetUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
+/* Modal action buttons */
+.modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 18px;
 }
-
-.modal-content h3 {
-    font-size: 1.15rem;
+.btn-primary, .btn-secondary {
+    padding: 15px 20px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
     font-weight: 600;
-    margin-bottom: 6px;
-    text-align: center;
+    cursor: pointer;
+    transition: transform 0.15s ease;
 }
+.btn-primary            { background: var(--accent-entry); color: #0f0f1a; }
+.btn-secondary          { background: var(--bg-card); color: var(--text-secondary); }
+.btn-primary:active,
+.btn-secondary:active   { transform: scale(0.97); }
 
-.modal-subtitle {
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-/* ─── Time Picker ─── */
-.time-picker {
-    display: flex;
-    justify-content: center;
-    margin: 20px 0;
-}
-
+/* Time picker */
+.time-picker { display: flex; justify-content: center; margin: 20px 0; }
 .time-input {
     font-size: 2.2rem;
     font-weight: 300;
@@ -811,73 +592,19 @@ body.past-week-view .weekly-table-container {
     -webkit-appearance: none;
     appearance: none;
 }
+.time-input:focus { outline: none; border-color: var(--accent-entry); }
 
-.time-input:focus {
-    outline: none;
-    border-color: var(--accent-entry);
-}
-
-/* ─── Modal Actions ─── */
-.modal-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 18px;
-}
-
-.btn-primary,
-.btn-secondary {
-    padding: 15px 20px;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.btn-primary {
-    background: var(--accent-entry);
-    color: #0f0f1a;
-}
-
-.btn-secondary {
-    background: var(--bg-card);
-    color: var(--text-secondary);
-}
-
-.btn-primary:active,
-.btn-secondary:active {
-    transform: scale(0.97);
-}
-
-.btn-full {
-    width: 100%;
-    margin-top: 12px;
-}
-
-/* ─── Settings Form ─── */
-.settings-form {
-    margin: 18px 0;
-}
-
-.setting-group {
-    margin-bottom: 18px;
-}
-
+/* Settings form */
+.settings-form  { margin: 18px 0; }
+.setting-group  { margin-bottom: 18px; }
 .setting-group label {
     display: block;
     color: var(--text-secondary);
     font-size: 0.85rem;
     margin-bottom: 8px;
 }
-
-.time-setting {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
+.time-setting { display: flex; align-items: center; gap: 8px; }
+.time-setting.centered { justify-content: center; }
 .time-setting input {
     width: 68px;
     padding: 11px;
@@ -890,32 +617,12 @@ body.past-week-view .weekly-table-container {
     -webkit-appearance: none;
     appearance: none;
 }
+.time-setting input:focus { outline: none; border-color: var(--accent-entry); }
+.time-setting span        { color: var(--text-muted); font-size: 0.85rem; }
 
-.time-setting input:focus {
-    outline: none;
-    border-color: var(--accent-entry);
-}
-
-.time-setting span {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-}
-
-.time-setting.centered {
-    justify-content: center;
-}
-
-/* ─── Vacation Hours Picker ─── */
-.vacation-hours-picker {
-    margin: 16px 0;
-}
-
-.vacation-presets {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
-}
-
+/* Vacation preset picker */
+.vacation-hours-picker  { margin: 16px 0; }
+.vacation-presets       { display: flex; gap: 8px; margin-bottom: 14px; }
 .preset-btn {
     flex: 1;
     padding: 11px 6px;
@@ -928,40 +635,19 @@ body.past-week-view .weekly-table-container {
     cursor: pointer;
     transition: all 0.15s ease;
 }
+.preset-btn.active  { border-color: var(--accent-entry); color: var(--accent-entry); background: rgba(0,217,165,0.1); }
+.preset-btn:active  { transform: scale(0.97); }
 
-.preset-btn.active {
-    border-color: var(--accent-entry);
-    color: var(--accent-entry);
-    background: rgba(0, 217, 165, 0.1);
-}
+.vacation-custom        { margin-bottom: 10px; }
+.vacation-custom.hidden { display: none; }
+.vacation-preview       { text-align: center; font-size: 1.8rem; font-weight: 300; color: var(--accent-entry); padding: 10px 0; }
 
-.preset-btn:active {
-    transform: scale(0.97);
-}
-
-.vacation-custom {
-    margin-bottom: 10px;
-}
-
-.vacation-custom.hidden {
-    display: none;
-}
-
-.vacation-preview {
-    text-align: center;
-    font-size: 1.8rem;
-    font-weight: 300;
-    color: var(--accent-entry);
-    padding: 10px 0;
-}
-
-/* ─── Export Button ─── */
+/* Export button */
 .export-section {
     margin-top: 4px;
     padding-top: 18px;
     border-top: 1px solid var(--border-color);
 }
-
 .btn-export {
     width: 100%;
     display: flex;
@@ -972,17 +658,28 @@ body.past-week-view .weekly-table-container {
     background: linear-gradient(135deg, #217346, #1d6b3f);
     border: none;
     border-radius: var(--radius-sm);
-    color: #ffffff;
+    color: #fff;
     font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
 }
+.btn-export:active { transform: scale(0.97); opacity: 0.9; }
 
-.btn-export:active {
-    transform: scale(0.97);
-    opacity: 0.9;
+/* ── 12. Animations ───────────────────────────────────────────────────────── */
+@keyframes sheetUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
 }
 
-/* ─── Scrollbar ─── */
-::-webkit-scrollbar { width: 0; height: 0; }
+/* Button-triggered week navigation slide */
+@keyframes slideInFromRight {
+    from { opacity: 0.5; transform: translateX(22px); }
+    to   { opacity: 1;   transform: translateX(0); }
+}
+@keyframes slideInFromLeft {
+    from { opacity: 0.5; transform: translateX(-22px); }
+    to   { opacity: 1;   transform: translateX(0); }
+}
+.week-swipe-area.slide-left  { animation: slideInFromRight 0.26s cubic-bezier(0.25,0.46,0.45,0.94); }
+.week-swipe-area.slide-right { animation: slideInFromLeft  0.26s cubic-bezier(0.25,0.46,0.45,0.94); }

@@ -14,7 +14,7 @@
 </head>
 <body>
     <div id="app">
-        <!-- Header -->
+
         <header class="header">
             <h1>TicTic Job</h1>
             <div class="header-actions">
@@ -24,7 +24,6 @@
             </div>
         </header>
 
-        <!-- Edit Mode Banner -->
         <div id="editBanner" class="edit-banner hidden">
             <div class="edit-banner-info">
                 <span class="edit-banner-icon">
@@ -35,16 +34,14 @@
             <button id="editBannerClose" class="edit-banner-close">Volver a Hoy</button>
         </div>
 
-        <!-- Scrollable Content -->
         <main class="main-content">
-            <!-- Live Clock Hero -->
+
             <div class="clock-hero">
                 <div class="date-display" id="currentDate"></div>
                 <div class="live-clock" id="liveClock">00:00</div>
                 <div class="clock-hint" id="clockHint">Toca un botón para registrar esta hora</div>
             </div>
 
-            <!-- Today's Records -->
             <section class="today-section">
                 <div class="section-header">
                     <h2 id="todaySectionTitle">Hoy</h2>
@@ -53,10 +50,8 @@
                 <div id="todayRecords" class="records-list"></div>
             </section>
 
-            <!-- Week swipe area wraps both week sections -->
             <div id="weekSwipeArea" class="week-swipe-area">
 
-                <!-- Weekly Progress -->
                 <section class="week-section">
                     <div class="section-header">
                         <h2 id="weekNavTitle">Esta semana</h2>
@@ -73,16 +68,15 @@
                     <div id="weeklyProgress" class="week-progress-card"></div>
                 </section>
 
-                <!-- Weekly Details Table -->
                 <section class="week-section">
                     <h2>Detalle</h2>
                     <div id="weeklyTable" class="weekly-table-container"></div>
                 </section>
 
-            </div><!-- /weekSwipeArea -->
+            </div>
+
         </main>
 
-        <!-- Sticky Bottom Actions -->
         <div class="bottom-bar">
             <button id="entryBtn" class="action-btn entry">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
@@ -94,10 +88,8 @@
             </button>
         </div>
 
-        <!-- Toast -->
         <div id="toast" class="toast"></div>
 
-        <!-- Edit Time Modal -->
         <div id="timeModal" class="modal">
             <div class="modal-content">
                 <h3 id="modalTitle">Editar Hora</h3>
@@ -111,7 +103,6 @@
             </div>
         </div>
 
-        <!-- Vacation Hours Modal -->
         <div id="vacationHoursModal" class="modal">
             <div class="modal-content">
                 <h3>Horas de Vacación</h3>
@@ -139,7 +130,6 @@
             </div>
         </div>
 
-        <!-- Settings Modal -->
         <div id="settingsModal" class="modal">
             <div class="modal-content">
                 <h3>Configuración</h3>
@@ -174,8 +164,10 @@
                 </div>
             </div>
         </div>
+
     </div>
 
-    <script src="app.js"></script>
+    <!-- ES module entry point -->
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
