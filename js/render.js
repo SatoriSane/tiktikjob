@@ -59,6 +59,13 @@ export const el = {
     cancelSettings:    $('cancelSettings'),
     saveSettings:      $('saveSettings'),
     exportExcel:       $('exportExcel'),
+    // Export modal
+    exportModal:       $('exportModal'),
+    exportFrom:        $('exportFrom'),
+    exportTo:          $('exportTo'),
+    cancelExport:      $('cancelExport'),
+    confirmExport:     $('confirmExport'),
+    exportRangeInfo:   $('exportRangeInfo'),
 };
 
 // ─── Toast ────────────────────────────────────────────────────────────────────

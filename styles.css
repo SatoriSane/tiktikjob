@@ -683,3 +683,90 @@ body.past-week-view .weekly-table-container {
 }
 .week-swipe-area.slide-left  { animation: slideInFromRight 0.26s cubic-bezier(0.25,0.46,0.45,0.94); }
 .week-swipe-area.slide-right { animation: slideInFromLeft  0.26s cubic-bezier(0.25,0.46,0.45,0.94); }
+
+/* ── Export Range Modal ───────────────────────────────────────────────────── */
+.export-presets {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.export-preset-btn {
+    flex: 1;
+    padding: 9px 6px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.export-preset-btn:active    { transform: scale(0.97); }
+.export-preset-btn.active    {
+    border-color: var(--accent-entry);
+    color: var(--accent-entry);
+    background: rgba(0, 217, 165, 0.1);
+}
+
+.export-range {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.export-range-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.export-range-field label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.export-range-sep {
+    color: var(--text-muted);
+    font-size: 1rem;
+    padding-bottom: 12px;
+    flex-shrink: 0;
+}
+
+.date-input {
+    width: 100%;
+    padding: 11px 10px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    text-align: center;
+    -webkit-appearance: none;
+    appearance: none;
+    color-scheme: dark;
+}
+.date-input:focus {
+    outline: none;
+    border-color: var(--accent-entry);
+}
+
+.export-range-info {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    min-height: 18px;
+    margin-bottom: 4px;
+}
+
+/* Confirm button with icon */
+#confirmExport {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}

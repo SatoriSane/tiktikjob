@@ -252,9 +252,82 @@ function saveSettings() {
 }
 
 // ─── CSV Export ───────────────────────────────────────────────────────────────
-function exportToCSV() {
+
+/** Opens the export modal, pre-filling date range and updating record count */
+function openExportModal() {
     const records = loadRecords();
-    if (!Object.keys(records).length) { showToast('No hay registros', 'exit'); return; }
+    const keys    = Object.keys(records).sort();
+    if (!keys.length) { showToast('No hay registros', 'exit'); return; }
+
+    closeModal(el.settingsModal);
+
+    // Default range: all records
+    el.exportFrom.value = keys[0];
+    el.exportTo.value   = keys[keys.length - 1];
+    el.exportFrom.max   = keys[keys.length - 1];
+    el.exportTo.min     = keys[0];
+    el.exportTo.max     = getDateKey();
+
+    // Clear active preset
+    el.exportModal.querySelectorAll('.export-preset-btn')
+        .forEach(b => b.classList.remove('active'));
+
+    _updateExportInfo();
+    openModal(el.exportModal);
+}
+
+function _updateExportInfo() {
+    const records = loadRecords();
+    const from    = el.exportFrom.value;
+    const to      = el.exportTo.value;
+    if (!from || !to || from > to) {
+        el.exportRangeInfo.textContent = '';
+        return;
+    }
+    const count = Object.keys(records).filter(dk => dk >= from && dk <= to).length;
+    el.exportRangeInfo.textContent = count
+        ? `${count} día${count !== 1 ? 's' : ''} con registros`
+        : 'Sin registros en ese rango';
+}
+
+function _applyExportPreset(preset) {
+    const today = new Date();
+    const records = loadRecords();
+    const allKeys = Object.keys(records).sort();
+    if (!allKeys.length) return;
+
+    let from, to = getDateKey();
+
+    if (preset === 'week') {
+        from = getDateKey(getWeekStart(today));
+    } else if (preset === 'month') {
+        const d = new Date(today.getFullYear(), today.getMonth(), 1);
+        from = getDateKey(d);
+    } else { // 'all'
+        from = allKeys[0];
+        to   = allKeys[allKeys.length - 1];
+    }
+
+    el.exportFrom.value = from;
+    el.exportTo.value   = to;
+    _updateExportInfo();
+}
+
+function exportToCSV() {
+    const from = el.exportFrom.value;
+    const to   = el.exportTo.value;
+    if (!from || !to || from > to) {
+        showToast('Rango de fechas inválido', 'exit');
+        return;
+    }
+
+    const allRecords = loadRecords();
+    // Filter records to selected range
+    const records = Object.fromEntries(
+        Object.entries(allRecords).filter(([dk]) => dk >= from && dk <= to)
+    );
+
+    if (!Object.keys(records).length) { showToast('Sin registros en ese rango', 'exit'); return; }
 
     const dTarget = dailyTarget(settings);
     const wTarget = settings.weeklyHours * 60;
@@ -334,7 +407,9 @@ function exportToCSV() {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url;
-    a.download = `TicTic_Job_${shortDate(new Date()).replace(/\//g, '-')}.csv`;
+    const fromFmt = from.replace(/-/g, '');
+    const toFmt   = to.replace(/-/g, '');
+    a.download = `TicTic_Job_${fromFmt}-${toFmt}.csv`;
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
@@ -458,10 +533,32 @@ function bindEvents() {
     el.settingsBtn.addEventListener('click',    openSettings);
     el.saveSettings.addEventListener('click',   saveSettings);
     el.cancelSettings.addEventListener('click', () => closeModal(el.settingsModal));
-    el.exportExcel.addEventListener('click',    exportToCSV);
+    el.exportExcel.addEventListener('click', openExportModal);
+
+    // Export modal
+    el.cancelExport.addEventListener('click',  () => closeModal(el.exportModal));
+    el.confirmExport.addEventListener('click', exportToCSV);
+
+    el.exportModal.querySelectorAll('.export-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            el.exportModal.querySelectorAll('.export-preset-btn')
+                .forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            _applyExportPreset(btn.dataset.preset);
+        });
+    });
+
+    [el.exportFrom, el.exportTo].forEach(inp => {
+        inp.addEventListener('change', () => {
+            // Clear preset highlight when user edits dates manually
+            el.exportModal.querySelectorAll('.export-preset-btn')
+                .forEach(b => b.classList.remove('active'));
+            _updateExportInfo();
+        });
+    });
 
     // Close modals on backdrop tap
-    [el.timeModal, el.settingsModal, el.vacationHoursModal].forEach(m => {
+    [el.timeModal, el.settingsModal, el.vacationHoursModal, el.exportModal].forEach(m => {
         m.addEventListener('click', e => {
             if (e.target === m) { closeModal(m); pendingQuickType = null; }
         });
