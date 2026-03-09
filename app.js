@@ -696,4 +696,12 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').catch(() => {});
     });
+
+    // When the SW sends SW_UPDATED, reload the page so the new
+    // JS/CSS actually runs (claiming alone doesn't reload open tabs).
+    navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data && event.data.type === 'SW_UPDATED') {
+            window.location.reload();
+        }
+    });
 }
