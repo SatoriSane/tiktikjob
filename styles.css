@@ -124,6 +124,94 @@ body.edit-mode .today-badge {
     background: rgba(255, 170, 50, 0.1);
 }
 
+/* ─── Past Week View ─── */
+/* Subtle visual cue that you're browsing historical data */
+body.past-week-view .week-nav-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+body.past-week-view .week-progress-card {
+    border: 1px solid rgba(160, 160, 176, 0.08);
+}
+
+body.past-week-view .weekly-table-container {
+    border: 1px solid rgba(160, 160, 176, 0.08);
+    border-radius: var(--radius-sm);
+}
+
+/* ─── Week Navigation Controls ─── */
+.week-nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.week-nav-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.week-nav-btn:active:not(:disabled) {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    transform: scale(0.88);
+    border-color: var(--text-muted);
+}
+
+.week-nav-btn:disabled,
+.week-nav-btn.nav-btn-disabled {
+    opacity: 0.22;
+    cursor: default;
+    pointer-events: none;
+}
+
+.week-nav-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    min-width: 66px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.2px;
+    padding: 0 2px;
+    transition: color 0.2s;
+}
+
+/* ─── Week Swipe Area ─── */
+.week-swipe-area {
+    /* Touch target for swipe gestures */
+    touch-action: pan-y; /* allow vertical scroll, intercept horizontal */
+}
+
+.week-swipe-area.slide-left {
+    animation: slideInFromRight 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.week-swipe-area.slide-right {
+    animation: slideInFromLeft 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes slideInFromRight {
+    from { opacity: 0.4; transform: translateX(18px); }
+    to   { opacity: 1;   transform: translateX(0); }
+}
+
+@keyframes slideInFromLeft {
+    from { opacity: 0.4; transform: translateX(-18px); }
+    to   { opacity: 1;   transform: translateX(0); }
+}
+
 /* ─── Header ─── */
 .header {
     display: flex;
@@ -324,7 +412,7 @@ body.edit-mode .today-badge {
     overflow: hidden;
 }
 
-/* ─── Day Type Picker (inline in today section) ─── */
+/* ─── Day Type Picker ─── */
 .day-type-picker {
     display: flex;
     gap: 10px;
@@ -383,7 +471,6 @@ body.edit-mode .today-badge {
 .add-vacation-link:active {
     color: var(--text-secondary);
 }
-
 
 .record-item {
     display: flex;
@@ -470,6 +557,8 @@ body.edit-mode .today-badge {
     background: var(--bg-secondary);
     border-radius: var(--radius-sm);
     padding: 18px;
+    border: 1px solid transparent;
+    transition: border-color 0.3s;
 }
 
 .progress-header {
@@ -533,6 +622,8 @@ body.edit-mode .today-badge {
     background: var(--bg-secondary);
     border-radius: var(--radius-sm);
     overflow: hidden;
+    border: 1px solid transparent;
+    transition: border-color 0.3s;
 }
 
 .weekly-table {
@@ -588,6 +679,15 @@ body.edit-mode .today-badge {
 
 .weekly-table .editing-row .day-name {
     color: #ffaa32;
+}
+
+.weekly-table .future-row td {
+    opacity: 0.4;
+}
+
+.empty-cell {
+    color: var(--text-muted);
+    opacity: 0.5;
 }
 
 .special-badge {
@@ -755,7 +855,6 @@ body.edit-mode .today-badge {
     width: 100%;
     margin-top: 12px;
 }
-
 
 /* ─── Settings Form ─── */
 .settings-form {

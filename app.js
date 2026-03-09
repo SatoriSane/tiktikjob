@@ -11,6 +11,7 @@ let editingDate = null;
 let pendingQuickType = null;
 let toastTimer = null;
 let clockInterval = null;
+let viewingWeekOffset = 0; // 0 = current week, -1 = last week, etc.
 
 // ─── DOM ───
 const $ = id => document.getElementById(id);
@@ -20,6 +21,9 @@ const el = {
     todayRecords: $('todayRecords'), todayTotal: $('todayTotal'), todaySectionTitle: $('todaySectionTitle'),
     editBanner: $('editBanner'), editBannerDate: $('editBannerDate'), editBannerClose: $('editBannerClose'),
     weeklyProgress: $('weeklyProgress'), weeklyTable: $('weeklyTable'),
+    weekNavTitle: $('weekNavTitle'), weekNavLabel: $('weekNavLabel'),
+    prevWeekBtn: $('prevWeekBtn'), nextWeekBtn: $('nextWeekBtn'),
+    weekSwipeArea: $('weekSwipeArea'),
     toast: $('toast'),
     timeModal: $('timeModal'), modalTitle: $('modalTitle'),
     timePicker: $('timePicker'), cancelTime: $('cancelTime'), confirmTime: $('confirmTime'),
@@ -54,6 +58,74 @@ function getNow() {
 }
 function t2m(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 function m2t(m) { return { hours: Math.floor(m / 60), minutes: m % 60 }; }
+
+// ─── Week Navigation Helpers ───
+function getViewingWeekStart() {
+    const d = new Date();
+    d.setDate(d.getDate() + viewingWeekOffset * 7);
+    return getWeekStart(d);
+}
+
+function getWeekLabel(ws) {
+    const we = new Date(ws);
+    we.setDate(we.getDate() + 6);
+    const startM = ws.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+    const endM = we.toLocaleDateString('es-ES', { month: 'short' }).replace('.', '');
+    if (ws.getMonth() === we.getMonth()) {
+        return `${ws.getDate()}–${we.getDate()} ${endM}`;
+    }
+    return `${ws.getDate()} ${startM} – ${we.getDate()} ${endM}`;
+}
+
+function updateWeekNav() {
+    const ws = getViewingWeekStart();
+
+    // Section title
+    if (viewingWeekOffset === 0) {
+        el.weekNavTitle.textContent = 'Esta semana';
+    } else if (viewingWeekOffset === -1) {
+        el.weekNavTitle.textContent = 'Semana pasada';
+    } else {
+        el.weekNavTitle.textContent = `Hace ${Math.abs(viewingWeekOffset)} semanas`;
+    }
+
+    // Date range label
+    el.weekNavLabel.textContent = getWeekLabel(ws);
+
+    // Next button state — can't go past current week
+    const isCurrentWeek = viewingWeekOffset >= 0;
+    el.nextWeekBtn.disabled = isCurrentWeek;
+    el.nextWeekBtn.classList.toggle('nav-btn-disabled', isCurrentWeek);
+
+    // Body class for past week visual mode
+    document.body.classList.toggle('past-week-view', viewingWeekOffset !== 0);
+}
+
+function navigateWeek(dir) {
+    const newOffset = viewingWeekOffset + dir;
+    if (newOffset > 0) return; // cap at current week
+
+    viewingWeekOffset = newOffset;
+
+    // Clear edit mode when navigating between weeks
+    if (editingDate) {
+        editingDate = null;
+        pendingQuickType = null;
+        el.editBanner.classList.add('hidden');
+        document.body.classList.remove('edit-mode');
+        startClock();
+    }
+
+    // Animate week sections
+    const swipeArea = el.weekSwipeArea;
+    if (swipeArea) {
+        const slideDir = dir < 0 ? 'slide-left' : 'slide-right';
+        swipeArea.classList.add(slideDir);
+        setTimeout(() => swipeArea.classList.remove(slideDir), 300);
+    }
+
+    refreshUI();
+}
 
 // ─── Storage ───
 function loadSettings() { const s = localStorage.getItem(STORAGE_KEYS.SETTINGS); return s ? JSON.parse(s) : { ...DEFAULT_SETTINGS }; }
@@ -92,7 +164,8 @@ function calcDay(dr) {
 }
 
 function calcWeek() {
-    const ws = getWeekStart(), days = getWeekDays(ws);
+    // Uses viewingWeekOffset so it shows the correct week
+    const ws = getViewingWeekStart(), days = getWeekDays(ws);
     const wTarget = settings.weeklyHours * 60;
     let totalW = 0; const data = [];
     days.forEach(day => {
@@ -160,7 +233,6 @@ function renderToday() {
     const hasSpecial = !!dr.specialDay;
     let html = '';
 
-    // Render entry/exit records
     if (hasEntries) {
         const sorted = [...dr.entries].sort((a, b) => t2m(a.time) - t2m(b.time));
         html += sorted.map((rec, i) => `
@@ -178,9 +250,8 @@ function renderToday() {
             </div>`).join('');
     }
 
-    // Render special day badge
     if (hasSpecial) {
-        const label = dr.specialDay === 'vacation' ? 'Vacaci\u00f3n' : 'Feriado';
+        const label = dr.specialDay === 'vacation' ? 'Vacación' : 'Feriado';
         const vacW = dr.specialDay === 'vacation' && dr.vacationMinutes !== undefined
             ? dr.vacationMinutes : settings.dailyHours * 60 + settings.dailyMinutes;
         const { hours, minutes } = m2t(vacW);
@@ -199,28 +270,24 @@ function renderToday() {
             </div>`;
     }
 
-    // Day type picker: show when no special day is set
     if (!hasSpecial) {
         if (!hasEntries) {
-            // Empty day — show prominent cards
             html += `
                 <div class="day-type-picker">
                     <button class="day-type-card vacation" onclick="handleVacation()">
-                        <span class="card-icon">\u2600\uFE0F</span> Vacaci\u00f3n
+                        <span class="card-icon">☀️</span> Vacación
                     </button>
                     <button class="day-type-card holiday" onclick="handleHoliday()">
-                        <span class="card-icon">\u2B50</span> Feriado
+                        <span class="card-icon">⭐</span> Feriado
                     </button>
                 </div>`;
         } else {
-            // Has entries — show subtle link
-            html += `<button class="add-vacation-link" onclick="handleVacation()">+ A\u00f1adir horas de vacaci\u00f3n</button>`;
+            html += `<button class="add-vacation-link" onclick="handleVacation()">+ Añadir horas de vacación</button>`;
         }
     }
 
     el.todayRecords.innerHTML = html;
 
-    // Total with breakdown
     const workedMin = calcWorkedEntries(dr.entries);
     const totalMin = calcDay(dr);
     if (totalMin > 0) {
@@ -269,12 +336,19 @@ function renderWeekTable() {
     const s = calcWeek();
     const rows = s.dailyData.map(d => {
         const isEditing = editingDate === d.dateKey;
-        const rowClass = [d.isToday && !editingDate ? 'today-row' : '', isEditing ? 'editing-row' : ''].filter(Boolean).join(' ');
+        const rowClass = [
+            d.isToday && viewingWeekOffset === 0 ? 'today-row' : '',
+            isEditing ? 'editing-row' : '',
+            'tappable-row'
+        ].filter(Boolean).join(' ');
+
         if (d.worked <= 0) {
-            return `<tr class="${rowClass} tappable-row" onclick="enterEditMode('${d.dateKey}')">
+            // Future days: show dash, past/today days: tappable
+            const isFuture = d.date > new Date() && !d.isToday;
+            return `<tr class="${rowClass}${isFuture ? ' future-row' : ''}" onclick="enterEditMode('${d.dateKey}')">
                 <td class="day-name">${d.dayName.charAt(0).toUpperCase() + d.dayName.slice(1)}</td>
                 <td>${d.date.getDate()}/${d.date.getMonth()+1}</td>
-                <td>-</td></tr>`;
+                <td class="empty-cell">–</td></tr>`;
         }
         const dr = getDayRecords(d.dateKey);
         const workedMin = calcWorkedEntries(dr.entries);
@@ -290,7 +364,7 @@ function renderWeekTable() {
             const tag = d.specialDay === 'vacation' ? 'vac' : 'fer';
             detail = `<span class="special-badge ${tag}">${hours}h ${minutes}m ${tag.toUpperCase()}</span>`;
         }
-        return `<tr class="${rowClass} tappable-row" onclick="enterEditMode('${d.dateKey}')">
+        return `<tr class="${rowClass}" onclick="enterEditMode('${d.dateKey}')">
             <td class="day-name">${d.dayName.charAt(0).toUpperCase() + d.dayName.slice(1)}</td>
             <td>${d.date.getDate()}/${d.date.getMonth()+1}</td>
             <td>${detail}</td></tr>`;
@@ -300,7 +374,11 @@ function renderWeekTable() {
 
 // ─── Edit Mode ───
 function enterEditMode(dateKey) {
+    // Clicking today in current week view → toggle off edit mode
+    if (dateKey === getDateKey() && viewingWeekOffset === 0) { exitEditMode(); return; }
+    // Clicking today from any other context → also exit
     if (dateKey === getDateKey()) { exitEditMode(); return; }
+
     editingDate = dateKey;
     const d = new Date(dateKey + 'T12:00:00');
     el.editBannerDate.textContent = formatDate(d);
@@ -314,13 +392,20 @@ function enterEditMode(dateKey) {
 function exitEditMode() {
     editingDate = null;
     pendingQuickType = null;
+    viewingWeekOffset = 0; // Return to current week when exiting edit mode
     el.editBanner.classList.add('hidden');
     document.body.classList.remove('edit-mode');
     startClock();
     refreshUI();
 }
 
-function refreshUI() { renderDate(); renderToday(); renderWeekProgress(); renderWeekTable(); }
+function refreshUI() {
+    updateWeekNav();
+    renderDate();
+    renderToday();
+    renderWeekProgress();
+    renderWeekTable();
+}
 
 // ─── Actions ───
 function quickRegister(type) {
@@ -350,7 +435,6 @@ function editRecord(index) {
 }
 
 function saveEditedRecord() {
-    // Handle pending quick register for edit mode
     if (pendingQuickType) {
         const type = pendingQuickType;
         const time = el.timePicker.value;
@@ -394,14 +478,14 @@ function setSpecialDay(type, vacMin) {
     saveDayRecords(dk, dr);
     closeModal(el.vacationHoursModal);
     refreshUI();
-    showToast(type === 'vacation' ? 'Vacaci\u00f3n registrada' : 'Feriado registrado', 'entry');
+    showToast(type === 'vacation' ? 'Vacación registrada' : 'Feriado registrado', 'entry');
 }
 
 function removeSpecialDay() {
     const dk = getActiveDate(), dr = getDayRecords(dk);
     dr.specialDay = null; delete dr.vacationMinutes;
     saveDayRecords(dk, dr);
-    refreshUI(); showToast('D\u00eda especial eliminado', 'exit');
+    refreshUI(); showToast('Día especial eliminado', 'exit');
 }
 
 function saveSettingsFromModal() {
@@ -409,7 +493,7 @@ function saveSettingsFromModal() {
     settings.dailyMinutes = parseInt(el.dailyMinutes.value) || 30;
     settings.weeklyHours = parseInt(el.weeklyHours.value) || 41;
     saveSettings2(); closeModal(el.settingsModal); refreshUI();
-    showToast('Configuraci\u00f3n guardada', 'entry');
+    showToast('Configuración guardada', 'entry');
 }
 
 // ─── Modals ───
@@ -472,7 +556,7 @@ function generateCSV() {
     });
     const { hours: tH, minutes: tM } = m2t(totW), { hours: teH, minutes: teM } = m2t(Math.abs(totE));
     csv += `\nTOTAL GENERAL,,,"${tH}h ${tM}min",,"${totE>=0?'+':'-'}${teH}h ${teM}min"\n\n`;
-    csv += 'DETALLE DIARIO\nFecha,D\u00eda,Tipo,Entradas,Salidas,Horas Presenciales,Horas Vac/Fer,Total D\u00eda,Objetivo,Diferencia\n';
+    csv += 'DETALLE DIARIO\nFecha,Día,Tipo,Entradas,Salidas,Horas Presenciales,Horas Vac/Fer,Total Día,Objetivo,Diferencia\n';
     Object.keys(records).sort().forEach(dk => {
         const d = new Date(dk), dr = records[dk];
         const workedMin = calcWorkedEntries(dr.entries);
@@ -488,9 +572,9 @@ function generateCSV() {
         let tipo = 'Normal', ent = '', sal = '';
         const hasEntries = dr.entries && dr.entries.length > 0;
         if (dr.specialDay && hasEntries) {
-            tipo = `Normal + ${dr.specialDay === 'vacation' ? 'Vacaci\u00f3n' : 'Feriado'}`;
+            tipo = `Normal + ${dr.specialDay === 'vacation' ? 'Vacación' : 'Feriado'}`;
         } else if (dr.specialDay) {
-            tipo = dr.specialDay === 'vacation' ? 'Vacaci\u00f3n' : 'Feriado';
+            tipo = dr.specialDay === 'vacation' ? 'Vacación' : 'Feriado';
         }
         if (hasEntries) {
             const s = [...dr.entries].sort((a,b) => t2m(a.time)-t2m(b.time));
@@ -516,9 +600,39 @@ function exportToExcel() {
     closeModal(el.settingsModal);
 }
 
+// ─── Swipe Gesture (week navigation) ───
+(function initSwipe() {
+    let startX = 0, startY = 0, isDragging = false;
+    const area = el.weekSwipeArea;
+    if (!area) return;
+
+    area.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isDragging = true;
+    }, { passive: true });
+
+    area.addEventListener('touchend', e => {
+        if (!isDragging) return;
+        isDragging = false;
+        const dx = startX - e.changedTouches[0].clientX;
+        const dy = Math.abs(startY - e.changedTouches[0].clientY);
+        // Only swipe if horizontal movement dominates (avoid scroll conflicts)
+        if (Math.abs(dx) > 55 && Math.abs(dx) > dy * 1.5) {
+            navigateWeek(dx > 0 ? -1 : 1);
+        }
+    }, { passive: true });
+
+    area.addEventListener('touchcancel', () => { isDragging = false; });
+})();
+
 // ─── Event Listeners ───
 
-// Main actions — instant register
+// Week navigation
+el.prevWeekBtn.addEventListener('click', () => navigateWeek(-1));
+el.nextWeekBtn.addEventListener('click', () => navigateWeek(1));
+
+// Main actions
 el.entryBtn.addEventListener('click', () => quickRegister('entry'));
 el.exitBtn.addEventListener('click', () => quickRegister('exit'));
 
@@ -558,7 +672,7 @@ el.cancelSettings.addEventListener('click', () => closeModal(el.settingsModal));
 el.saveSettings.addEventListener('click', saveSettingsFromModal);
 el.exportExcel.addEventListener('click', exportToExcel);
 
-// Edit mode
+// Edit mode banner
 el.editBannerClose.addEventListener('click', exitEditMode);
 
 // Close modals on backdrop
