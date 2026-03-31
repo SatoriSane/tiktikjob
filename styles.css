@@ -410,6 +410,60 @@ body.past-week-view .weekly-table-container {
 }
 .add-vacation-link:active { color: var(--text-secondary); }
 
+/* Notes */
+.note-display {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-top: 1px solid var(--border-color);
+}
+.note-display:active { background: var(--bg-card); }
+.note-icon { font-size: 0.9rem; line-height: 1.4; flex-shrink: 0; }
+.note-content {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+    flex: 1;
+    min-width: 0;
+}
+.add-note-link {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    background: none;
+    border: none;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+.add-note-link:active { color: var(--text-secondary); }
+
+.note-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 14px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    resize: vertical;
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: 10px;
+}
+.note-textarea:focus { outline: none; border-color: var(--accent-entry); }
+.note-textarea::placeholder { color: var(--text-muted); }
+
 /* ── 8. Week Progress Card ────────────────────────────────────────────────── */
 .week-progress-card {
     background: var(--bg-secondary);

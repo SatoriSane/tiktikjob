@@ -32,8 +32,9 @@ export const dailyTarget = s => s.dailyHours * 60 + s.dailyMinutes;
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 const pad = n => String(n).padStart(2, '0');
 
-/** Date → "YYYY-MM-DD" */
-export const getDateKey = (date = new Date()) => date.toISOString().split('T')[0];
+/** Date → "YYYY-MM-DD" (local time) */
+export const getDateKey = (date = new Date()) =>
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 /** Date → Monday of that week (00:00:00) */
 export const getWeekStart = (date = new Date()) => {

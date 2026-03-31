@@ -203,7 +203,34 @@ function removeSpecialDay() {
     showToast('Día especial eliminado', 'exit');
 }
 
-// ─── Vacation modal ───────────────────────────────────────────────────────────
+// ─── Notes ────────────────────────────────────────────────────────────────
+function openNote() {
+    const dk = activeDate();
+    const dr = getDayRecords(dk);
+    const d  = new Date(dk + 'T12:00:00');
+    el.noteModalDate.textContent = formatDate(d);
+    el.noteText.value = dr.note || '';
+    openModal(el.noteModal);
+    // Auto-focus textarea after modal animation
+    setTimeout(() => el.noteText.focus(), 260);
+}
+
+function saveNote() {
+    const dk   = activeDate();
+    const dr   = getDayRecords(dk);
+    const text = el.noteText.value.trim();
+    if (text) {
+        dr.note = text;
+    } else {
+        delete dr.note;
+    }
+    saveDayRecords(dk, dr);
+    closeModal(el.noteModal);
+    refresh();
+    showToast(text ? 'Nota guardada' : 'Nota eliminada', 'entry');
+}
+
+// ─── Vacation modal ───────────────────────────────────────────────────────
 function openVacationModal() {
     const max  = dailyTarget(settings);
     const half = Math.round(max / 2);
@@ -335,7 +362,7 @@ function exportToCSV() {
     // Build week list
     const weeks = new Map();
     Object.keys(records).sort().forEach(dk => {
-        const ws = getWeekStart(new Date(dk));
+        const ws = getWeekStart(new Date(dk + 'T12:00:00'));
         const wk = getDateKey(ws);
         if (!weeks.has(wk)) weeks.set(wk, { weekStart: ws });
     });
@@ -352,7 +379,11 @@ function exportToCSV() {
     let totW = 0, totE = 0;
     sortedWeeks.forEach(({ weekStart: ws }) => {
         let wW = 0;
-        getWeekDays(ws).forEach(d => { wW += calcDay(getDayRecords(getDateKey(d))); });
+        getWeekDays(ws).forEach(d => {
+            const dk = getDateKey(d);
+            if (!(dk in allRecords)) return;
+            wW += calcDay(getDayRecords(dk));
+        });
         const wE = wW - wTarget;
         totW += wW; totE += wE;
         const { hours: wH, minutes: wM } = m2t(wW);
@@ -368,10 +399,15 @@ function exportToCSV() {
     csv += `\nTOTAL GENERAL,,,"${tH}h ${tM}min",,"${totE >= 0 ? '+' : '-'}${teH}h ${teM}min"\n\n`;
 
     // Daily detail
-    csv += 'DETALLE DIARIO\nFecha,Día,Tipo,Entradas,Salidas,Horas Presenciales,Horas Vac/Fer,Total Día,Objetivo,Diferencia\n';
+    csv += 'DETALLE DIARIO\nFecha,Día,Tipo,Entradas,Salidas,Horas Presenciales,Horas Vac/Fer,Total Día,Objetivo,Diferencia,Notas\n';
     Object.keys(records).sort().forEach(dk => {
-        const d   = new Date(dk);
+        const d   = new Date(dk + 'T12:00:00');
         const dr  = records[dk];
+        const hasEntries = dr.entries?.length > 0;
+        const hasSpecial = !!dr.specialDay;
+        const hasNote    = !!dr.note;
+        // Skip days with no user data at all
+        if (!hasEntries && !hasSpecial && !hasNote) return;
         const workedMin = calcWorkedEntries(dr.entries);
         let vacFerMin = 0;
         if (dr.specialDay === 'holiday') vacFerMin = dTarget;
@@ -384,7 +420,6 @@ function exportToCSV() {
         const { hours: tH2, minutes: tM2 } = m2t(totalMin);
         const { hours: dH, minutes: dM }   = m2t(Math.abs(diff));
 
-        const hasEntries = dr.entries?.length > 0;
         let tipo = 'Normal';
         if (dr.specialDay && hasEntries) tipo = `Normal + ${dr.specialDay === 'vacation' ? 'Vacación' : 'Feriado'}`;
         else if (dr.specialDay)          tipo = dr.specialDay === 'vacation' ? 'Vacación' : 'Feriado';
@@ -400,7 +435,7 @@ function exportToCSV() {
                `${workedMin > 0 ? `${wH}h ${wM}min` : '-'},` +
                `${vacFerMin > 0 ? `${vH}h ${vM}min` : '-'},` +
                `${tH2}h ${tM2}min,${settings.dailyHours}h ${settings.dailyMinutes}min,` +
-               `${diff >= 0 ? '+' : '-'}${dH}h ${dM}min\n`;
+               `${diff >= 0 ? '+' : '-'}${dH}h ${dM}min,${escCSV(dr.note || '')}\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -535,6 +570,10 @@ function bindEvents() {
     el.cancelSettings.addEventListener('click', () => closeModal(el.settingsModal));
     el.exportExcel.addEventListener('click', openExportModal);
 
+    // Note modal
+    el.confirmNote.addEventListener('click', saveNote);
+    el.cancelNote.addEventListener('click',  () => closeModal(el.noteModal));
+
     // Export modal
     el.cancelExport.addEventListener('click',  () => closeModal(el.exportModal));
     el.confirmExport.addEventListener('click', exportToCSV);
@@ -558,7 +597,7 @@ function bindEvents() {
     });
 
     // Close modals on backdrop tap
-    [el.timeModal, el.settingsModal, el.vacationHoursModal, el.exportModal].forEach(m => {
+    [el.timeModal, el.settingsModal, el.vacationHoursModal, el.noteModal, el.exportModal].forEach(m => {
         m.addEventListener('click', e => {
             if (e.target === m) { closeModal(m); pendingQuickType = null; }
         });
@@ -573,6 +612,7 @@ window.App = {
     handleVacation: openVacationModal,
     handleHoliday:  () => setSpecialDay('holiday'),
     enterEditMode,
+    openNote,
 };
 
 // ─── Init ─────────────────────────────────────────────────────────────────────

@@ -59,6 +59,12 @@ export const el = {
     cancelSettings:    $('cancelSettings'),
     saveSettings:      $('saveSettings'),
     exportExcel:       $('exportExcel'),
+    // Note modal
+    noteModal:         $('noteModal'),
+    noteModalDate:     $('noteModalDate'),
+    noteText:          $('noteText'),
+    cancelNote:        $('cancelNote'),
+    confirmNote:       $('confirmNote'),
     // Export modal
     exportModal:       $('exportModal'),
     exportFrom:        $('exportFrom'),
@@ -145,7 +151,8 @@ export function renderDay(activeDate, settings) {
     el.todayRecords.innerHTML =
         _recordsHTML(dr, hasEntries, hasSpecial) +
         _specialBadgeHTML(dr, hasSpecial, settings) +
-        _dayTypePickerHTML(hasEntries, hasSpecial);
+        _dayTypePickerHTML(hasEntries, hasSpecial) +
+        _noteHTML(dr);
 
     _renderDayTotal(dr, hasEntries, hasSpecial);
     _updateSuggestedBtn(activeDate);
@@ -207,6 +214,19 @@ function _dayTypePickerHTML(hasEntries, hasSpecial) {
         </div>`;
     return `<button class="add-vacation-link" onclick="App.handleVacation()">
         + Añadir horas de vacación
+    </button>`;
+}
+
+function _noteHTML(dr) {
+    if (dr.note) {
+        return `
+            <div class="note-display" onclick="App.openNote()">
+                <div class="note-icon">📝</div>
+                <div class="note-content">${dr.note.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+            </div>`;
+    }
+    return `<button class="add-note-link" onclick="App.openNote()">
+        + Añadir nota
     </button>`;
 }
 
